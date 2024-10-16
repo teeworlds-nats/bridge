@@ -1,0 +1,5 @@
+services:
+  handler:
+    build: .
+    environment:
+      RUST_LOG: INFO
