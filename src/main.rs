@@ -86,7 +86,5 @@ async fn main() -> Result<(), async_nats::Error>  {
         js.publish("teesports.handler", json.into())
             .await
             .expect("Error publish message to teesports.messages");
-
-        println!("{:?}", message);
     }
 }

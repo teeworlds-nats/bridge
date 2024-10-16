@@ -26,7 +26,7 @@ pub struct Msg {
 }
 
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Env {
     pub message_thread_id: String,
     pub server_name: String,
