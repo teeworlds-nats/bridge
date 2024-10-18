@@ -1,5 +1,5 @@
 services:
-  handler:
+  bridge:
     build: .
     environment:
       RUST_LOG: INFO

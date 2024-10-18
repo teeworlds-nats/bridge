@@ -33,7 +33,7 @@ async fn sender_message_to_tw(mut econ: Econ, message_thread_id: String, nc: asy
             Err(err) => { error!("Error converting bytes to string: {}", err); continue }
         };
 
-        match econ.send_line(format!("say \"{}\"", msg)) {
+        match econ.send_line(format!("{}", msg)) {
             Ok(_) => {}
             Err(err) => { error!("Error send_line to econ: {}", err); continue }
         };
@@ -70,6 +70,7 @@ async fn main() -> Result<(), async_nats::Error>  {
                 continue
             }
         }) else { continue };
+        debug!("{}", message);
 
         let send_msg = Msg {
             server_name: env.server_name.clone(),
@@ -82,7 +83,7 @@ async fn main() -> Result<(), async_nats::Error>  {
             Err(err) => {error!("Json Serialize Error: {}", err); continue}
         };
 
-        debug!("sended json to teesports.handler: {}", json);
+        // debug!("sended json to teesports.handler: {}", json);
         js.publish("teesports.handler", json.into())
             .await
             .expect("Error publish message to teesports.messages");
