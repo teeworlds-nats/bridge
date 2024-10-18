@@ -41,6 +41,26 @@ async fn sender_message_to_tw(mut econ: Econ, message_thread_id: String, nc: asy
 }
 
 
+async fn moderator_tw(mut econ: Econ, message_thread_id: String, nc: async_nats::Client) {
+    let mut subscriber = nc.queue_subscribe(
+        "teesports.moderator",
+        format!("bridge_.{}", message_thread_id)
+    ).await.unwrap();
+
+    while let Some(message) = subscriber.next().await {
+        let msg: &str = match std::str::from_utf8(&message.payload) {
+            Ok(json_string) => json_string,
+            Err(err) => { error!("Error converting bytes to string: {}", err); continue }
+        };
+
+        match econ.send_line(format!("{}", msg)) {
+            Ok(_) => {}
+            Err(err) => { error!("Error send_line to econ: {}", err); continue }
+        };
+    }
+}
+
+
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error>  {
     let env = match Env::get_yaml() {
