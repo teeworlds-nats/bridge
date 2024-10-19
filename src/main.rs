@@ -24,7 +24,7 @@ async fn econ_connect(env: Env) -> std::io::Result<Econ> {
 
 async fn sender_message_to_tw(mut econ: Econ, message_thread_id: String, nc: async_nats::Client) {
     let mut subscriber = nc.queue_subscribe(
-        format!("teesports.{}", message_thread_id),
+        format!("tw.{}", message_thread_id),
         format!("bridge_.{}", message_thread_id)
     ).await.unwrap();
 
@@ -43,7 +43,7 @@ async fn sender_message_to_tw(mut econ: Econ, message_thread_id: String, nc: asy
 
 
 async fn moderator_tw(mut econ: Econ, nc: async_nats::Client) {
-    let mut subscriber = nc.subscribe("teesports.moderator", ).await.unwrap();
+    let mut subscriber = nc.subscribe("tw.moderator", ).await.unwrap();
 
     while let Some(message) = subscriber.next().await {
         let msg: &str = match std::str::from_utf8(&message.payload) {
@@ -106,9 +106,9 @@ async fn main() -> Result<(), async_nats::Error>  {
             Err(err) => {error!("Json Serialize Error: {}", err); continue}
         };
 
-        debug!("sended json to teesports.handler: {}", json);
-        js.publish("teesports.handler", json.into())
+        debug!("sended json to tw.handler: {}", json);
+        js.publish("tw.handler", json.into())
             .await
-            .expect("Error publish message to teesports.messages");
+            .expect("Error publish message to tw.messages");
     }
 }
