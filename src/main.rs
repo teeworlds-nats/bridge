@@ -5,6 +5,7 @@ use std::time::Duration;
 use log::{debug, error, info};
 use tw_econ::Econ;
 use futures_util::stream::StreamExt;
+use tokio::time::sleep;
 use crate::model::{Env, Msg};
 
 async fn econ_connect(env: Env) -> std::io::Result<Econ> {
@@ -58,6 +59,7 @@ async fn moderator_tw(mut econ: Econ, message_thread_id: String, nc: async_nats:
             Err(err) => { error!("Error send_line to econ: {}", err); continue }
         };
     }
+    sleep(Duration::from_millis(50)).await;
 }
 
 
@@ -72,11 +74,16 @@ async fn main() -> Result<(), async_nats::Error>  {
     let nc = env.connect_nats().await?;
     let js = async_nats::jetstream::new(nc.clone());
 
-    let mut econ = econ_connect(env.clone()).await.expect("Failed connect econ");
+    let mut econ = econ_connect(env.clone()).await?;
     info!("econ connected");
 
     tokio::spawn(sender_message_to_tw(
-        econ_connect(env.clone()).await.expect("Failed connect econ"),
+        econ_connect(env.clone()).await?,
+        env.message_thread_id.clone(),
+        nc.clone()
+    ));
+    tokio::spawn(moderator_tw(
+        econ_connect(env.clone()).await?,
         env.message_thread_id.clone(),
         nc.clone()
     ));
