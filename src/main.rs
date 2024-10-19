@@ -97,7 +97,6 @@ async fn main() -> Result<(), async_nats::Error>  {
                 continue
             }
         }) else { continue };
-        debug!("{}", message);
 
         let send_msg = Msg {
             server_name: env.server_name.clone(),
@@ -110,7 +109,7 @@ async fn main() -> Result<(), async_nats::Error>  {
             Err(err) => {error!("Json Serialize Error: {}", err); continue}
         };
 
-        // debug!("sended json to teesports.handler: {}", json);
+        debug!("sended json to teesports.handler: {}", json);
         js.publish("teesports.handler", json.into())
             .await
             .expect("Error publish message to teesports.messages");
