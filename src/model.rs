@@ -2,7 +2,7 @@ use std::option::Option;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::net::{Ipv4Addr, SocketAddr, ToSocketAddrs};
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
@@ -22,6 +22,30 @@ fn read_yaml_file(file_path: &str) -> Result<Env, Box<dyn Error>> {
 pub struct Msg {
     pub server_name: String,
     pub message_thread_id: String,
+    pub text: String,
+}
+
+
+#[derive(Debug, Serialize)]
+pub struct DataStatus {
+    pub datetime: String,
+    pub user_id: usize,
+    pub addr: Ipv4Addr,
+    pub name: String,
+    pub version: String,
+    pub secure: String,
+    pub flags: String,
+    pub key: Option<String>
+}
+
+
+#[derive(Debug, Serialize)]
+pub struct MsgHandler {
+    pub data: Option<DataStatus>,
+    pub server_name: String,
+    pub name: Option<String>,
+    pub message_thread_id: String,
+    pub regex_type: String,
     pub text: String,
 }
 
