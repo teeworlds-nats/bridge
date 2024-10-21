@@ -99,7 +99,6 @@ async fn sender_message_to_tw(nc: async_nats::Client, js: async_nats::jetstream:
             continue;
         }
 
-        // Получаем блокировку на Econ
         let mut econ_lock = econ.lock().await;
         match econ_lock.send_line(msg) {
             Ok(_) => {}
@@ -113,7 +112,7 @@ async fn sender_message_to_tw(nc: async_nats::Client, js: async_nats::jetstream:
 
 
 async fn moderator_tw(econ: Arc<Mutex<Econ>>, nc: async_nats::Client) {
-    let mut subscriber = nc.subscribe("tw.moderator", ).await.unwrap();
+    let mut subscriber = nc.subscribe("tw.moderator").await.unwrap();
 
     while let Some(message) = subscriber.next().await {
         let msg: &str = match std::str::from_utf8(&message.payload) {
