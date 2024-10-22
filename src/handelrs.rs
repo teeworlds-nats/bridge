@@ -22,7 +22,7 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, js: Context, env: Env,
             Ok(json_string) => json_string,
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
-                continue;
+                exit(0);
             }
         };
 
@@ -40,7 +40,7 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, js: Context, env: Env,
                 Ok(str) => str,
                 Err(err) => {
                     error!("Json Serialize Error: {}", err);
-                    continue;
+                    exit(0);
                 }
             };
 
@@ -67,13 +67,10 @@ pub async fn moderator_tw(econ: Arc<Mutex<Econ>>, nc: async_nats::Client) {
     let mut subscriber = nc.subscribe("tw.moderator").await.unwrap();
 
     while let Some(message) = subscriber.next().await {
-        let msg: &str = match std::str::from_utf8(&message.payload) {
-            Ok(json_string) => json_string,
-            Err(err) => {
-                error!("Error converting bytes to string: {}", err);
-                continue
-            }
-        };
+        let msg: &str = std::str::from_utf8(&message.payload).unwrap_or_else(|err| {
+            error!("Error converting bytes to string: {}", err);
+            exit(0)
+        });
 
         debug!("send_line to econ: {}", msg);
         let mut econ_lock = econ.lock().await;
