@@ -42,10 +42,10 @@ async fn main() -> Result<(), async_nats::Error>  {
         };
         let json = serde_json::to_string_pretty(&send_msg).expect("Failed Serialize Msg");
 
-        debug!("sended json to tw.handler: {}", json);
-        js.publish("tw.handler", json.into())
+        debug!("send json to tw.econ.read.(id): {}", json);
+        js.publish("tw.econ.read.".to_owned() + &env.message_thread_id.clone(), json.into())
             .await
-            .expect("Error publish message to tw.handler");
+            .expect("Error publish message to tw.econ.read.(id)");
     }
 }
 

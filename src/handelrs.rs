@@ -11,7 +11,7 @@ use crate::model::{Env, MsgHandler};
 
 pub async fn sender_message_to_tw(nc: async_nats::Client, js: Context, env: Env, econ: Arc<Mutex<Econ>>) {
     let mut subscriber = nc.queue_subscribe(
-        format!("tw.{}", env.message_thread_id),
+        format!("tw.econ.write.{}", env.message_thread_id),
         format!("bridge_.{}", env.message_thread_id)
     ).await.unwrap();
 
@@ -44,10 +44,10 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, js: Context, env: Env,
                 }
             };
 
-            debug!("sended json to tw.messages: {}", json);
-            js.publish("tw.messages", json.into())
+            debug!("sended json to tw.tg.(id): {}", json);
+            js.publish("tw.tg.".to_owned() + &env.message_thread_id.clone(), json.into())
                 .await
-                .expect("Error publish message to tw.messages");
+                .expect("Error publish message to tw.tg.(id)");
             continue;
         }
 
@@ -64,7 +64,7 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, js: Context, env: Env,
 
 
 pub async fn moderator_tw(econ: Arc<Mutex<Econ>>, nc: async_nats::Client) {
-    let mut subscriber = nc.subscribe("tw.moderator").await.unwrap();
+    let mut subscriber = nc.subscribe("tw.econ.moderator").await.unwrap();
 
     while let Some(message) = subscriber.next().await {
         let msg: &str = std::str::from_utf8(&message.payload).unwrap_or_else(|err| {
