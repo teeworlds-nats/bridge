@@ -1,10 +1,10 @@
 mod model;
-mod handelrs;
+mod handlers;
 mod util;
 
 use std::process::exit;
 use log::{debug, error, info};
-use crate::handelrs::{moderator_tw, sender_message_to_tw};
+use crate::handlers::{moderator_tw, sender_message_to_tw};
 use crate::model::{Env, Msg};
 use crate::util::econ_connect;
 
@@ -23,7 +23,7 @@ async fn main() -> Result<(), async_nats::Error>  {
     let econ_write = econ_connect(env.clone()).await?;
     info!("econ connected");
 
-    tokio::spawn(sender_message_to_tw(nc.clone(), js.clone(), env.clone(), econ_write.clone()));
+    tokio::spawn(sender_message_to_tw(nc.clone(), env.message_thread_id.clone(), econ_write.clone()));
     tokio::spawn(moderator_tw(econ_write.clone(), nc.clone()));
 
     loop {
