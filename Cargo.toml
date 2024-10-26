@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 tw-econ = { git = "https://github.com/ByFox213/tw-econ"}
 async-nats = { version = "0.37.0"}
-tokio = { version = "1.40.0", features = ["full"] }
+tokio = { version = "1.41.0", features = ["full"] }
 log = "0.4.22"
 env_logger = "0.11.5"
 serde = { version = "1.0.210", features = ["derive"] }
