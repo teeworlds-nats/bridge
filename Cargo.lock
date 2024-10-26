@@ -1491,7 +1491,7 @@ dependencies = [
 [[package]]
 name = "tw-econ"
 version = "0.6.1"
-source = "git+https://github.com/ByFox213/tw-econ#f2ee46285e5b2588cfd0e0805feded9800e55e1c"
+source = "git+https://github.com/ByFox213/tw-econ#5dbee08bf7abc498a640edf3056e9e686ee25ff3"
 
 [[package]]
 name = "typenum"
