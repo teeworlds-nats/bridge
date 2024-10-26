@@ -9,6 +9,7 @@ FROM alpine:3.17
 
 WORKDIR /tw
 
-COPY --from=rust-build /app_build/target/release/bridge_bridge-rs /tw/bridge
+COPY --from=rust-build /app_build/emojis.txt /tw/emojis.txt
+COPY --from=rust-build /app_build/target/release/bridge /tw/bridge
 
-CMD ["/tw/bridge"]
+CMD ["/tw/bridge", "bridge"]

@@ -3,3 +3,19 @@ services:
     build: .
     environment:
       RUST_LOG: INFO
+
+  handler:
+    build: .
+    command:
+      - /tw/bridge
+      - handler
+    environment:
+      RUST_LOG: INFO
+
+  util-handler:
+    build: .
+    command:
+      - /tw/bridge
+      - util-handler
+    environment:
+      RUST_LOG: INFO
