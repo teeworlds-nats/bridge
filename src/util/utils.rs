@@ -2,6 +2,8 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::sync::Arc;
+use bytes::Bytes;
+use async_nats::jetstream::Context;
 use log::debug;
 use tokio::sync::Mutex;
 use tw_econ::Econ;
@@ -111,3 +113,10 @@ pub fn format_regex(mut text: String, regex_vec: Vec<(Regex, String)>) -> String
     }
     text
 }
+
+
+pub async fn send_message(json: &String, publish_stream: &str, jetstream: &Context) -> Result<(), Box<dyn std::error::Error>> {
+    jetstream.publish(publish_stream.to_string(), Bytes::from(json.clone())).await?;
+    Ok(())
+}
+

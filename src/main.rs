@@ -1,5 +1,11 @@
 use std::process::exit;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use signal_hook::consts::TERM_SIGNALS;
+use signal_hook::flag;
 use clap::{Parser, Subcommand};
+use tokio::time::sleep;
 use crate::model::Env;
 
 // Actions
@@ -38,6 +44,20 @@ async fn main() -> std::io::Result<()> {
         Err(err) => {eprintln!("Failed open yaml fail: {}", err); exit(0)}
     };
     env_logger::init();
+
+    let term_now = Arc::new(AtomicBool::new(false));
+
+    for sig in TERM_SIGNALS {
+        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
+        flag::register(*sig, Arc::clone(&term_now))?;
+    }
+
+    tokio::spawn( async move {
+        while !term_now.load(Ordering::Relaxed) {
+            sleep(Duration::from_secs(1)).await;
+        }
+        exit(0);
+    });
 
     let nc = env.connect_nats().await.unwrap();
     let js = async_nats::jetstream::new(nc.clone());

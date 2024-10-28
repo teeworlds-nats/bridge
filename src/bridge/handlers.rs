@@ -1,3 +1,4 @@
+use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 use futures_util::StreamExt;
@@ -16,7 +17,8 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, message_thread_id: Str
         let msg: &str = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => json_string,
             Err(err) => {
-                panic!("Error converting bytes to string: {}", err);
+                eprintln!("Error converting bytes to string: {}", err);
+                exit(0);
             }
         };
 
@@ -24,7 +26,8 @@ pub async fn sender_message_to_tw(nc: async_nats::Client, message_thread_id: Str
         match econ_lock.send_line(msg) {
             Ok(_) => {}
             Err(err) => {
-                panic!("Error send_line to econ: {}", err);
+                eprintln!("Error send_line to econ: {}", err);
+                exit(0);
             }
         };
     }
@@ -36,7 +39,8 @@ pub async fn moderator_tw(econ: Arc<Mutex<Econ>>, nc: async_nats::Client) {
 
     while let Some(message) = subscriber.next().await {
         let msg: &str = std::str::from_utf8(&message.payload).unwrap_or_else(|err| {
-            panic!("Error converting bytes to string: {}", err);
+            eprintln!("Error converting bytes to string: {}", err);
+            exit(0);
         });
 
         debug!("send_line to econ: {}", msg);
@@ -44,7 +48,8 @@ pub async fn moderator_tw(econ: Arc<Mutex<Econ>>, nc: async_nats::Client) {
         match econ_lock.send_line(msg) {
             Ok(_) => {}
             Err(err) => {
-                panic!("Error send_line to econ: {}", err);
+                eprintln!("Error send_line to econ: {}", err);
+                exit(0);
             }
         };
     }

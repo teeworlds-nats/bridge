@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tw-econ = { git = "https://github.com/ByFox213/tw-econ"}
+tw-econ = { git = "https://github.com/ByFox213/tw-econ" }
 async-nats = { version = "0.37.0"}
 tokio = { version = "1.40.0", features = ["full"] }
 log = "0.4.22"
@@ -19,3 +19,5 @@ once_cell = "1.20.2"
 regex = "1.11.0"
 liquid = "0.26.9"
 futures = "0.3.31"
+signal-hook = "0.3.17"
+bytes = "1.8.0"

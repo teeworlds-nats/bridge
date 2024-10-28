@@ -1,6 +1,7 @@
 use std::option::Option;
 use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::process::exit;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use liquid::Template;
 use log::debug;
@@ -175,7 +176,8 @@ impl Env {
 
     pub fn get_econ_addr(&self) -> SocketAddr {
         if self.econ_host.is_none() || self.econ_password.is_none() {
-            panic!("econ_host and econ_password must be set");
+            eprintln!("econ_host and econ_password must be set");
+            exit(0);
         }
         format!("{}:{}", self.econ_host.clone().unwrap(), self.econ_port.clone().unwrap()).to_socket_addrs().expect("Error create econ address").next().unwrap()
     }

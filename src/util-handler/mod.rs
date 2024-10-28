@@ -4,7 +4,7 @@ use std::process::exit;
 use async_nats::Client;
 use async_nats::jetstream::Context;
 use futures::StreamExt;
-use log::{info, error, debug};
+use log::{info, debug};
 use crate::model::{Env, MsgBridge, MsgUtil};
 use crate::util::patterns::DD_PATTERNS_UTIL;
 use crate::util_handler::handlers::process_rcon;
@@ -19,11 +19,11 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), asyn
     while let Some(message) = subscriber.next().await {
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                error!("Error deserializing JSON: {}", err);
+                eprintln!("Error deserializing JSON: {}", err);
                 exit(0);
             }),
             Err(err) => {
-                error!("Error converting bytes to string: {}", err);
+                eprintln!("Error converting bytes to string: {}", err);
                 exit(0);
             }
         };
@@ -55,7 +55,7 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), asyn
                 let json = match serde_json::to_string_pretty(&send_msg) {
                     Ok(str) => { str }
                     Err(err) => {
-                        error!("Json Serialize Error: {}", err);
+                        eprintln!("Json Serialize Error: {}", err);
                         break
                     }
                 };

@@ -1,5 +1,6 @@
 pub mod handlers;
 
+use std::process::exit;
 use async_nats::Client;
 use async_nats::jetstream::Context;
 use futures::StreamExt;
@@ -16,10 +17,12 @@ pub async fn main(env: EnvHandler, nats: Client, jetstream: Context) -> Result<(
         debug!("message received from {}, length {}", message.subject, message.length);
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {}", err);
+                eprintln!("Error deserializing JSON: {}", err);
+                exit(0);
             }),
             Err(err) => {
-                panic!("Error converting bytes to string: {}", err);
+                eprintln!("Error converting bytes to string: {}", err);
+                exit(0);
             }
         };
         let message_thread_id = msg.message_thread_id.clone();
