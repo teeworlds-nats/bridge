@@ -116,8 +116,8 @@ pub fn format_regex(mut text: String, regex_vec: Vec<(Regex, String)>) -> String
 }
 
 
-pub async fn send_message(json: &String, publish_stream: &str, jetstream: &Context) -> Result<(), Box<dyn std::error::Error>> {
-    jetstream.publish(publish_stream.to_string(), Bytes::from(json.clone())).await?;
+pub async fn send_message(json: &str, publish_stream: &str, jetstream: &Context) -> Result<(), Box<dyn Error>> {
+    jetstream.publish(publish_stream.to_string(), Bytes::from(json.to_owned())).await?;
     Ok(())
 }
 
