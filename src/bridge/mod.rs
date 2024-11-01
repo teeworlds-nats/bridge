@@ -18,6 +18,8 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), asyn
     let server_name = env.server_name.clone().unwrap();
     let publish_stream = "tw.econ.read.".to_owned() + &message_thread_id.clone();
 
+    // TODO: Arc to channel
+    // TODO: https://tokio.rs/tokio/tutorial/channels#create-the-channel
     let econ = econ_connect(env.clone()).await?;
     let econ_write = econ_connect(env.clone()).await?;
     info!("econ connected");

@@ -1502,8 +1502,9 @@ dependencies = [
 
 [[package]]
 name = "tw-econ"
-version = "0.6.1"
-source = "git+https://github.com/ByFox213/tw-econ#35a7249e73d917b61ea43511b1263f8b4bcfd93c"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "913c22056ef89379bb4216dd12c244ff8a2af0576570c35ecf145133f3d82290"
 
 [[package]]
 name = "typenum"

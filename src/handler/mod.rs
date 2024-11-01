@@ -42,7 +42,7 @@ pub async fn main(env: EnvHandler, nats: Client, jetstream: Context) -> Result<(
 
             debug!("sent json to tw.tg.(id): {}", json);
 
-            jetstream.publish("tw.tg.".to_owned() + message_thread_id.as_ref(), json.into())
+            jetstream.publish(format!("tw.tg.{}", message_thread_id), json.into())
                 .await
                 .expect("Error publish message to tw.messages");
             break

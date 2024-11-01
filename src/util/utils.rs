@@ -6,13 +6,14 @@ use std::sync::Arc;
 use bytes::Bytes;
 use async_nats::jetstream::Context;
 use log::debug;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex};
 use tw_econ::Econ;
 use liquid::{ParserBuilder, Template};
 use regex::{Captures, Regex};
 use crate::model::{Env, EnvHandler, RegexModel};
 
 pub fn read_yaml_file(file_path: &str) -> Result<Env, Box<dyn Error>> {
+    // TODO: https://crates.io/crates/tap
     let mut file = File::open(file_path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
@@ -22,9 +23,12 @@ pub fn read_yaml_file(file_path: &str) -> Result<Env, Box<dyn Error>> {
 }
 
 pub async fn econ_connect(env: Env) -> std::io::Result<Arc<Mutex<Econ>>> {
+    // TODO: Arc to channel
+    // TODO: https://tokio.rs/tokio/tutorial/channels#create-the-channel
     let econ = Arc::new(Mutex::new(Econ::new()));
 
     let econ_clone = econ.clone();
+    // TODO: https://crates.io/crates/tap
     let mut econ_lock = econ_clone.lock().await;
     econ_lock.connect(env.get_econ_addr())?;
 
@@ -33,12 +37,14 @@ pub async fn econ_connect(env: Env) -> std::io::Result<Arc<Mutex<Econ>>> {
     }
 
     if env.econ_password.is_none() {
-        panic!("econ_password must be set");
+        eprintln!("econ_password must be set");
+        exit(0);
     }
 
     let authed = econ_lock.try_auth(env.econ_password.unwrap())?;
     if !authed {
-        panic!("Econ client is not authorized");
+        eprintln!("Econ client is not authorized");
+        exit(0);
     }
 
     Ok(econ)

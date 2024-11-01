@@ -39,7 +39,7 @@ pub struct RegexModel {
 }
 
 impl RegexModel {
-    pub fn new<T: ToString>(name: T, regex: &str, template_: Option<&str>) -> RegexModel {
+    pub fn new(name: &str, regex: &str, template_: Option<&str>) -> Self {
         let name = name.to_string();
         let template_ = template_.unwrap_or_default();
         RegexModel {
@@ -68,7 +68,7 @@ pub struct EnvHandler {
     pub block_text_in_chat: Vec<(String, String)>,
 }
 
-
+// TODO: https://crates.io/crates/nestify
 #[derive(Clone, Deserialize)]
 pub struct Env {
     pub nats_server: String,
