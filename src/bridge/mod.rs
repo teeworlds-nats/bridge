@@ -4,7 +4,7 @@ use std::process::exit;
 use async_nats::Client;
 use async_nats::jetstream::Context;
 use log::{debug, info};
-use crate::bridge::handlers::{moderator_tw, sender_message_to_tw};
+use crate::bridge::handlers::{check_status, moderator_tw, sender_message_to_tw};
 use crate::model::{Env, MsgBridge};
 use crate::util::utils::{econ_connect, send_message};
 
@@ -24,6 +24,7 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), asyn
 
     tokio::spawn(sender_message_to_tw(nats.clone(), message_thread_id.clone(), econ_write.clone()));
     tokio::spawn(moderator_tw(econ_write.clone(), nats.clone()));
+    tokio::spawn(check_status(econ_write.clone(), env.check_status_econ.clone()));
 
     loop {
         let line = match econ.lock().await.recv_line(true) {

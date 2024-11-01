@@ -77,6 +77,7 @@ pub struct Env {
 
     // bridge
 
+    pub check_status_econ: Option<u64>, // In Sec
     pub message_thread_id: Option<String>,
     pub server_name: Option<String>,
     pub econ_host: Option<String>,
