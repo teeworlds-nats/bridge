@@ -5,6 +5,7 @@ use std::time::Duration;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use clap::{Parser, Subcommand};
+use log::error;
 use tokio::time::sleep;
 use crate::model::Env;
 
@@ -41,7 +42,7 @@ async fn main() -> std::io::Result<()> {
 
     let env = match Env::get_yaml() {
         Ok(env) => {env}
-        Err(err) => {eprintln!("Failed open yaml fail: {}", err); exit(0)}
+        Err(err) => {error!("Failed open yaml fail: {}", err); exit(1)}
     };
     env_logger::init();
 
@@ -56,7 +57,7 @@ async fn main() -> std::io::Result<()> {
         while !term_now.load(Ordering::Relaxed) {
             sleep(Duration::from_secs(1)).await;
         }
-        exit(0);
+        exit(1);
     });
 
     let nc = env.connect_nats().await.unwrap();
@@ -67,6 +68,6 @@ async fn main() -> std::io::Result<()> {
         Actions::Handler => { handler::main(env.get_env_handler().unwrap(), nc, js).await.ok(); }
         Actions::UtilHandler => { util_handler::main(env, nc, js).await.ok(); }
     }
-
+    println!("The program ran into the end");
     Ok(())
 }

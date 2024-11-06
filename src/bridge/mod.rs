@@ -3,59 +3,43 @@ pub mod handlers;
 use std::process::exit;
 use async_nats::Client;
 use async_nats::jetstream::Context;
-use log::{debug, info};
-use crate::bridge::handlers::{check_status, moderator_tw, sender_message_to_tw};
-use crate::model::{Env, MsgBridge};
-use crate::util::utils::{econ_connect, send_message};
+use log::{error, info};
+use tokio::sync::mpsc;
+use crate::bridge::handlers::{check_status, msg_reader, process_messages};
+use crate::model::{Env};
+use crate::util::utils::{econ_connect, err_to_string_and_exit};
 
-pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), async_nats::Error>  {
+
+pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result<()>  {
     if env.message_thread_id.is_none() || env.server_name.is_none() {
-        eprintln!("econ_password and server_name must be set");
-        exit(0);
+        error!("econ_password and server_name must be set");
+        exit(1);
     }
 
-    let message_thread_id = env.message_thread_id.clone().unwrap();
-    let server_name = env.server_name.clone().unwrap();
-    let publish_stream = "tw.econ.read.".to_owned() + &message_thread_id.clone();
+    let Some(message_thread_id) = env.message_thread_id.clone() else { error!("message_thread_id is none"); exit(1) };
 
-    // TODO: Arc to channel
-    // TODO: https://tokio.rs/tokio/tutorial/channels#create-the-channel
-    let econ = econ_connect(env.clone()).await?;
-    let econ_write = econ_connect(env.clone()).await?;
-    info!("econ connected");
+    let (tx, mut rx) = mpsc::channel(32);
+    let econ_reader = econ_connect(env.clone()).await?;
+    let mut econ_write = econ_connect(env.clone()).await?;
+    info!("econ_reader and econ_write connected");
 
-    tokio::spawn(sender_message_to_tw(nats.clone(), message_thread_id.clone(), econ_write.clone()));
-    tokio::spawn(moderator_tw(econ_write.clone(), nats.clone()));
-    tokio::spawn(check_status(econ_write.clone(), env.check_status_econ));
+    let queue_group = format!("econ.reader.{}", message_thread_id);
+    let econ_subscriber = nats.queue_subscribe(format!("tw.econ.write.{}", message_thread_id), queue_group.clone()).await.unwrap();
+    let moderators_events = nats.queue_subscribe("tw.econ.moderator", queue_group).await.unwrap();
 
-    loop {
-        let line = match econ.lock().await.recv_line(true) {
-            Ok(result) => { result }
+    tokio::spawn(msg_reader(econ_reader, jetstream, message_thread_id.clone(), env.server_name.clone().unwrap()));
+    tokio::spawn(process_messages(tx.clone(), econ_subscriber));
+    tokio::spawn(process_messages(tx.clone(), moderators_events));
+    tokio::spawn(check_status(tx.clone(), env.check_status_econ));
+
+    while let Some(message) = rx.recv().await {
+        match econ_write.send_line(message).await {
+            Ok(_) => {}
             Err(err) => {
-                eprintln!("err from loop: {}", err);
-                exit(0);
+                err_to_string_and_exit("Error send_line to econ: ", Box::new(err))
             }
         };
-
-        if line.is_none() {
-            continue
-        }
-
-        if let Some(message) = line {
-            debug!("Recevered line from econ: {}", message);
-            let send_msg = MsgBridge {
-                server_name: server_name.clone(),
-                message_thread_id: message_thread_id.clone(),
-                text: message,
-            };
-
-            let json = serde_json::to_string_pretty(&send_msg)?;
-
-            debug!("Sending JSON to tw.econ.read.(id): {}", json);
-            if let Err(e) = send_message(&json, &publish_stream, &jetstream).await {
-                eprintln!("Failed to send message: {}", e);
-            }
-        }
     }
+    Ok(())
 }
 

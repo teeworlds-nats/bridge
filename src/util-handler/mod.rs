@@ -20,11 +20,11 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> Result<(), asyn
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
                 eprintln!("Error deserializing JSON: {}", err);
-                exit(0);
+                exit(1);
             }),
             Err(err) => {
                 eprintln!("Error converting bytes to string: {}", err);
-                exit(0);
+                exit(1);
             }
         };
 

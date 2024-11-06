@@ -1,6 +1,7 @@
 server_name: Fng
 message_thread_id: "1379"
-econ_host: 127.0.0.1
-econ_port: 8303
-econ_password: econ_password
-nats_server: nats://nats:4222
+nats:
+  server: nats://nats:4222
+econ:
+  host: 127.0.0.1:8303
+  password: econ_password

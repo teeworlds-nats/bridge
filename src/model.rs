@@ -2,12 +2,12 @@ use std::option::Option;
 use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::process::exit;
-use async_nats::{Client, ConnectOptions, Error as NatsError};
-use liquid::Template;
-use log::debug;
-use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
-use crate::util::utils::{read_yaml_file, template};
+use async_nats::{Client, ConnectOptions, Error as NatsError};
+use log::{debug, error};
+use regex::Regex;
+use nestify::nest;
+use crate::util::utils::read_yaml_file;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,17 +35,15 @@ pub struct MsgBridge {
 pub struct RegexModel {
     pub name: String,
     pub regex: Regex,
-    pub template: Template,
+    pub template: String,
 }
 
 impl RegexModel {
     pub fn new(name: &str, regex: &str, template_: Option<&str>) -> Self {
-        let name = name.to_string();
-        let template_ = template_.unwrap_or_default();
         RegexModel {
-            name,
+            name: name.to_string(),
             regex: Regex::new(regex).unwrap(),
-            template: template(template_),
+            template: template_.unwrap_or_default().to_string(),
         }
     }
 }
@@ -59,7 +57,7 @@ pub struct RconData {
 
 
 pub struct EnvHandler {
-    pub text: Template,
+    pub text: String,
     pub text_leave: String,
     pub text_join: String,
     pub nickname_regex: Vec<(Regex, String)>,
@@ -68,42 +66,49 @@ pub struct EnvHandler {
     pub block_text_in_chat: Vec<(String, String)>,
 }
 
-// TODO: https://crates.io/crates/nestify
-#[derive(Clone, Deserialize)]
-pub struct Env {
-    pub nats_server: String,
-    pub nats_user: Option<String>,
-    pub nats_password: Option<String>,
+nest! {
+    #[derive(Clone, Deserialize)]
+    pub struct Env {
+        pub nats:
+            #[derive(Clone, Deserialize)]
+            pub struct EnvNats {
+                pub server: String,
+                pub user: Option<String>,
+                pub password: Option<String>,
+            },
 
-    // bridge
+        // bridge
 
-    pub check_status_econ: Option<u64>, // In Sec
-    pub message_thread_id: Option<String>,
-    pub server_name: Option<String>,
-    pub econ_host: Option<String>,
-    pub econ_port: Option<String>,
-    pub econ_password: Option<String>,
-    pub auth_message: Option<String>,
+        pub check_status_econ: Option<u64>, // In Sec
+        pub message_thread_id: Option<String>,
+        pub server_name: Option<String>,
+        pub econ: Option<
+            #[derive(Clone, Deserialize)]
+            pub struct EnvEcon {
+                pub host: Option<String>,
+                pub password: Option<String>,
+                pub auth_message: Option<String>,
+            }>,
 
-    // handler
-    pub text: Option<String>,
-    pub text_leave: Option<String>,
-    pub text_join: Option<String>,
-    pub nickname_regex: Option<Vec<(String, String)>>,
-    pub block_text_in_nickname: Option<Vec<(String, String)>>,
-    pub chat_regex: Option<Vec<(String, String)>>,
-    pub block_text_in_chat: Option<Vec<(String, String)>>,
+        // handler
+        pub text: Option<String>,
+        pub text_leave: Option<String>,
+        pub text_join: Option<String>,
+        pub nickname_regex: Option<Vec<(String, String)>>,
+        pub block_text_in_nickname: Option<Vec<(String, String)>>,
+        pub chat_regex: Option<Vec<(String, String)>>,
+        pub block_text_in_chat: Option<Vec<(String, String)>>,
 
-    // util-handler
-    pub commands: Option<Commands>
+        // util-handler
+        pub commands: Option<
+            #[derive(Clone, Deserialize)]
+            pub struct Commands {
+                sync: Option<Vec<String>>,
+                log: Option<Vec<String>>
+            }>
+    }
 }
 
-
-#[derive(Clone, Deserialize)]
-pub struct Commands {
-    sync: Option<Vec<String>>,
-    log: Option<Vec<String>>
-}
 
 
 impl Env {
@@ -114,7 +119,7 @@ impl Env {
 
     pub fn get_env_handler(&self) -> Result<EnvHandler, Box<dyn Error>> {
         Ok(EnvHandler {
-            text: template(&self.text.clone().unwrap_or_else(|| "{{player}} {{text}}".to_string())),
+            text: self.text.clone().unwrap_or_else(|| "{{player}} {{text}}".to_string()),
             text_leave: self.text_leave.clone().unwrap_or_else(|| "has left the game".to_string()),
             text_join: self.text_join.clone().unwrap_or_else(|| "has join the game".to_string()),
             nickname_regex: self.nickname_regex.clone()
@@ -176,32 +181,28 @@ impl Env {
     }
 
     pub fn get_econ_addr(&self) -> SocketAddr {
-        if self.econ_host.is_none() || self.econ_password.is_none() {
-            eprintln!("econ_host and econ_password must be set");
-            exit(0);
+        let Some(econ) = self.econ.clone() else {exit(-1)};
+        if econ.host.is_none() {
+            error!("econ.host must be set");
+            exit(1);
         }
-        format!("{}:{}", self.econ_host.clone().unwrap(), self.econ_port.clone().unwrap()).to_socket_addrs().expect("Error create econ address").next().unwrap()
+        econ.host.unwrap().to_socket_addrs().expect("Error create econ address").next().unwrap()
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {
-        let nats_user = self.nats_user.clone();
-        let nats_password = self.nats_password.clone();
-
-        let connect = match (nats_user, nats_password) {
+        let connect = match (self.nats.user.clone(), self.nats.password.clone()) {
             (Some(user), Some(password)) => {
-                debug!("Connected nats from user and password: {}", self.nats_server);
                 ConnectOptions::new().user_and_password(user, password)
             },
             _ => {
-                debug!("Connected nats: {}", self.nats_server);
                 ConnectOptions::new()
             }
         };
-
         let nc = connect
             .ping_interval(std::time::Duration::from_secs(15))
-            .connect(&self.nats_server)
+            .connect(&self.nats.server)
             .await?;
+        debug!("Connected nats: {}", self.nats.server);
         Ok(nc)
     }
 }

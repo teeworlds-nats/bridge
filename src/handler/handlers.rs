@@ -34,7 +34,7 @@ pub async fn chat_handler(msg: MsgBridge, env: &EnvHandler, caps: Captures<'_ >,
         Ok(str) => {str}
         Err(err) => {
             error!("Json Serialize Error: {}", err);
-            exit(0);
+            exit(1);
         }
     }
 }

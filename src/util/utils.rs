@@ -2,13 +2,8 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::process::exit;
-use std::sync::Arc;
-use bytes::Bytes;
-use async_nats::jetstream::Context;
-use log::debug;
-use tokio::sync::{Mutex};
+use log::error;
 use tw_econ::Econ;
-use liquid::{ParserBuilder, Template};
 use regex::{Captures, Regex};
 use crate::model::{Env, EnvHandler, RegexModel};
 
@@ -22,44 +17,31 @@ pub fn read_yaml_file(file_path: &str) -> Result<Env, Box<dyn Error>> {
     Ok(env)
 }
 
-pub async fn econ_connect(env: Env) -> std::io::Result<Arc<Mutex<Econ>>> {
-    // TODO: Arc to channel
-    // TODO: https://tokio.rs/tokio/tutorial/channels#create-the-channel
-    let econ = Arc::new(Mutex::new(Econ::new()));
+pub async fn econ_connect(env: Env) -> std::io::Result<Econ> {
+    let mut econ = Econ::new();
+    if env.econ.is_none() {
+        error!("econ must be set, see config_example.yaml");
+        exit(1);
+    }
+    let econ_env = env.econ.clone().unwrap();
 
-    let econ_clone = econ.clone();
-    // TODO: https://crates.io/crates/tap
-    let mut econ_lock = econ_clone.lock().await;
-    econ_lock.connect(env.get_econ_addr())?;
-
-    if let Some(msg) = env.auth_message {
-        econ_lock.set_auth_message(msg);
+    if econ_env.password.is_none() {
+        error!("econ.password must be set");
+        exit(1);
     }
 
-    if env.econ_password.is_none() {
-        eprintln!("econ_password must be set");
-        exit(0);
+    econ.connect(env.get_econ_addr()).await?;
+    if let Some(auth_message) = econ_env.auth_message {
+        econ.set_auth_message(auth_message)
     }
 
-    let authed = econ_lock.try_auth(env.econ_password.unwrap())?;
+    let authed = econ.try_auth(econ_env.password.unwrap()).await?;
     if !authed {
-        eprintln!("Econ client is not authorized");
-        exit(0);
+        error!("Econ client is not authorized");
+        exit(1);
     }
 
     Ok(econ)
-}
-
-pub fn template(template: &str) -> Template {
-    if !template.is_empty() {
-        debug!("template: {}", template);
-    }
-
-    ParserBuilder::with_stdlib()
-        .build()
-        .expect("Template error created")
-        .parse(template)
-        .expect("Template error parsed")
 }
 
 fn format_mention(nickname: String) -> String {
@@ -81,21 +63,14 @@ pub fn generate_text(reg: Captures, pattern: &RegexModel, env: &EnvHandler) -> O
         );
     }
 
+    let text = pattern.template
+        .replacen("{{text_leave}}", &env.text_leave, 1)
+        .replacen("{{text_join}}", &env.text_join, 1);
 
-    let obj = liquid::object!({
-        "text_leave": &env.text_leave,
-        "text_join": &env.text_join
-    });
-
-    let obj_text = liquid::object!({
-        "player": reg.get(1)?.as_str().to_string(),
-        "text": pattern.template.render(&obj).expect("Template render error, generate_text")
-    });
-
-    let formatted_text = format_mention(
-        env.text.render(&obj_text).unwrap()
-    );
-    Some((String::new(), formatted_text))
+    Some((String::new(), format_mention(env.text
+        .replacen("{{text}}", &text, 1)
+        .replacen("{{player}}", reg.get(1)?.as_str(), 1)
+    )))
 
 }
 
@@ -122,19 +97,12 @@ pub fn format_regex(mut text: String, regex_vec: Vec<(Regex, String)>) -> String
 }
 
 
-pub async fn send_message(json: &str, publish_stream: &str, jetstream: &Context) -> Result<(), Box<dyn Error>> {
-    jetstream.publish(publish_stream.to_string(), Bytes::from(json.to_owned())).await?;
-    Ok(())
-}
-
-
-
 pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     let text = match err.to_string().as_ref() {
         "Broken pipe (os error 32)" => {"Server closed socket(Broken pipe, os error 32)".to_string()}
         _ => {err.to_string()}
     };
-    eprintln!("{}{}", msg, text);
-    exit(0);
+    error!("{}{}", msg, text);
+    exit(1);
 }
 

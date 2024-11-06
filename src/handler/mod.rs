@@ -4,7 +4,7 @@ use std::process::exit;
 use async_nats::Client;
 use async_nats::jetstream::Context;
 use futures::StreamExt;
-use log::{debug, info};
+use log::{debug, error, info};
 use crate::handler::handlers::chat_handler;
 use crate::model::{EnvHandler, MsgBridge};
 use crate::util::patterns::DD_PATTERNS;
@@ -17,12 +17,12 @@ pub async fn main(env: EnvHandler, nats: Client, jetstream: Context) -> Result<(
         debug!("message received from {}, length {}", message.subject, message.length);
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                eprintln!("Error deserializing JSON: {}", err);
-                exit(0);
+                error!("Error deserializing JSON: {}", err);
+                exit(1);
             }),
             Err(err) => {
-                eprintln!("Error converting bytes to string: {}", err);
-                exit(0);
+                error!("Error converting bytes to string: {}", err);
+                exit(1);
             }
         };
         let message_thread_id = msg.message_thread_id.clone();
