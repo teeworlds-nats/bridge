@@ -4,21 +4,25 @@ on:
     branches:
     - main
     - dev
-  # workflow_run:
-  #   workflows: [build and test, CodeQL]
-  #   types:
-  #     - completed
 jobs:
   release-docker:
     name: Release docker image
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
+      - name: set NOW env
+        run: echo "::set-env name=NOW::$(date +'%Y-%m-%dT%H:%M:%S')"
+
       - name: Check out the repo
         uses: actions/checkout@v3
+
+      - name: echo NOW
+        run: echo "$NOW"
+
       - name: Log in our registry
-        uses: docker://d.1xxx.ru:5443/teeworlds/nats/econ-to-nats
+        uses: docker/login-action@v2
         with:
+          registry: d.1xxx.ru:5443
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
