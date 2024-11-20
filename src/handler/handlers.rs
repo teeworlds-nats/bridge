@@ -2,11 +2,11 @@ use std::process::exit;
 use log::error;
 use regex::Captures;
 use crate::util::emojis::replace_from_emoji;
-use crate::model::{EnvHandler, MsgBridge, MsgHandler, RegexModel};
+use crate::model::{EnvHandler, MsgBridge, MsgHandler, HandlerPaths};
 use crate::util::utils::{format_regex, format_text, generate_text};
 
 
-pub async fn chat_handler(msg: MsgBridge, env: &EnvHandler, caps: Captures<'_ >, pattern: &RegexModel) -> String {
+pub async fn chat_handler(msg: &MsgBridge, env: &EnvHandler, caps: Captures<'_ >, pattern: &HandlerPaths) -> String {
     let Some((name, text)) = generate_text(caps, pattern, env) else {
         return String::default()
     };
@@ -18,7 +18,8 @@ pub async fn chat_handler(msg: MsgBridge, env: &EnvHandler, caps: Captures<'_ >,
     );
 
     let name = format_regex(
-        format_text(name, env.block_text_in_nickname.clone()
+        format_text(
+            name, env.block_text_in_nickname.clone()
         ), env.nickname_regex.clone()
     );
 
@@ -26,12 +27,11 @@ pub async fn chat_handler(msg: MsgBridge, env: &EnvHandler, caps: Captures<'_ >,
         server_name: Some(msg.server_name.clone()),
         name: Some(name),
         message_thread_id: msg.message_thread_id.clone(),
-        regex_type: pattern.name.clone(),
         text: Some(text)
     };
 
     match serde_json::to_string_pretty(&send_msg) {
-        Ok(str) => {str}
+        Ok(str) => { str }
         Err(err) => {
             error!("Json Serialize Error: {}", err);
             exit(1);

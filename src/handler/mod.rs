@@ -7,7 +7,6 @@ use futures::StreamExt;
 use log::{debug, error, info};
 use crate::handler::handlers::chat_handler;
 use crate::model::{EnvHandler, MsgBridge};
-use crate::util::patterns::DD_PATTERNS;
 
 pub async fn main(env: EnvHandler, nats: Client, jetstream: Context) -> Result<(), async_nats::Error> {
     let mut subscriber = nats.queue_subscribe("tw.econ.read.*", "handler".to_string()).await?;
@@ -25,27 +24,33 @@ pub async fn main(env: EnvHandler, nats: Client, jetstream: Context) -> Result<(
                 exit(1);
             }
         };
-        let message_thread_id = msg.message_thread_id.clone();
-        for pattern in DD_PATTERNS.iter() {
-            if !pattern.regex.is_match(&msg.text) {
-                continue;
+
+        for pattern in env.paths.iter() {
+            if pattern.read == message.subject.to_string() {
+                continue
+            };
+
+            for regex in &pattern.regex {
+                if let Some(caps) = regex.captures(&msg.text) {
+                    let json = chat_handler(&msg, &env, caps, pattern).await;
+
+                    if json.is_empty() {
+                        break
+                    }
+
+                    debug!("sent json to {}: {}", pattern.read, json);
+                    for write_path in &pattern.write {
+                        let path = write_path
+                            .replacen("{{message_thread_id}}", &msg.message_thread_id, 1)
+                            .replacen("{{server_name}}", &msg.server_name, 1);
+
+                        jetstream.publish(path, json.clone().into())
+                            .await
+                            .expect("Error publish message to tw.messages");
+                    }
+                    break
+                }
             }
-
-            let text = msg.text.clone();
-            let caps = pattern.regex.captures(&text).unwrap();
-
-            let json = chat_handler(msg, &env, caps, pattern).await;
-
-            if json.is_empty() {
-                break
-            }
-
-            debug!("sent json to tw.tg.(id): {}", json);
-
-            jetstream.publish(format!("tw.tg.{}", message_thread_id), json.into())
-                .await
-                .expect("Error publish message to tw.messages");
-            break
         }
     }
 

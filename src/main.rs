@@ -5,12 +5,12 @@ use std::time::Duration;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use clap::{Parser, Subcommand};
-use log::error;
 use tokio::time::sleep;
 use crate::model::Env;
+use crate::util::errors::ConfigError;
 
 // Actions
-mod bridge;
+mod econ;
 mod handler;
 
 #[path= "util-handler/mod.rs"]
@@ -30,20 +30,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Actions {
-    Bridge,
+    Econ,
     Handler,
     #[clap(name = "util-handler")]
     UtilHandler
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
-    let env = match Env::get_yaml() {
-        Ok(env) => {env}
-        Err(err) => {error!("Failed open yaml fail: {}", err); exit(1)}
-    };
+    let env = Env::get_yaml().await?;
     env_logger::init();
 
     let term_now = Arc::new(AtomicBool::new(false));
@@ -64,7 +61,7 @@ async fn main() -> std::io::Result<()> {
     let js = async_nats::jetstream::new(nc.clone());
 
     match &cli.action {
-        Actions::Bridge => { bridge::main(env, nc, js).await.ok(); }
+        Actions::Econ => { econ::main(env, nc, js).await.ok(); }
         Actions::Handler => { handler::main(env.get_env_handler().unwrap(), nc, js).await.ok(); }
         Actions::UtilHandler => { util_handler::main(env, nc, js).await.ok(); }
     }

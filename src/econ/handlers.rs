@@ -1,20 +1,26 @@
 use std::process::exit;
 use std::time::Duration;
+use async_nats::Client;
 use async_nats::jetstream::Context;
 use async_nats::jetstream::context::PublishError;
 use bytes::Bytes;
-use futures::Stream;
 use futures_util::StreamExt;
-use log::{debug, error};
+use log::{debug, info, error};
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
 use crate::model::MsgBridge;
 
-pub async fn process_messages<T>(tx: Sender<String>, mut subscriber: T)
-where
-    T: Stream<Item = async_nats::Message> + Unpin,
-{
+pub async fn process_messages(tx: Sender<String>, subscriber_str: String, queue_group: String, nats: Client) {
+    let mut subscriber = match nats.queue_subscribe(subscriber_str.clone(), queue_group).await {
+        Ok(subscriber) => subscriber,
+        Err(err) => {
+            error!("Failed to subscribe to {}: {}", subscriber_str, err);
+            return;
+        }
+    };
+
+    info!("Subscribe to the channel: {}", subscriber_str);
     while let Some(message) = subscriber.next().await {
         debug!("Message received from {}, length {}", message.subject, message.length);
         let msg = match std::str::from_utf8(&message.payload) {
@@ -31,15 +37,18 @@ where
     }
 }
 
-pub async fn msg_reader(mut econ: Econ, jetstream: Context, message_thread_id: String, server_name: String) -> Result<(), PublishError> {
-    let publish_stream = format!("tw.econ.read.{}", &message_thread_id.clone());
+pub async fn msg_reader(mut econ: Econ, jetstream: Context, nats_path: Vec<String>, message_thread_id: String, server_name: String) -> Result<(), PublishError> {
+    let publish_stream: Vec<String> = nats_path
+        .iter()
+        .map(|x| x.replace("{{message_thread_id}}", &message_thread_id.clone()).replace("{{server_name}}", &server_name.clone()))
+        .collect();
 
     loop {
         let line = match econ.recv_line(true).await {
             Ok(result) => { result }
             Err(err) => {
                 error!("err from loop: {}", err);
-                exit(1);
+                break;
             }
         };
 
@@ -56,12 +65,13 @@ pub async fn msg_reader(mut econ: Econ, jetstream: Context, message_thread_id: S
                 Err(err) => {error!("Error converting json to string: {}", err); continue}
             };
 
-            debug!("Sending JSON to tw.econ.read.(id): {}", json);
-            jetstream.publish(publish_stream.clone(), Bytes::from(json.to_owned())).await?.await?;
-        } else {
-            sleep(Duration::from_millis(10)).await;
+            debug!("Sending JSON to {:?}: {}", publish_stream, json);
+            for send_path in publish_stream.clone() {
+                jetstream.publish(send_path, Bytes::from(json.to_owned())).await?.await?;
+            }
         }
     }
+    exit(-1);
 }
 
 pub async fn check_status(tx: Sender<String>, check_status_econ_sleep: Option<u64>) {

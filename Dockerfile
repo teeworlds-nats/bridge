@@ -12,4 +12,4 @@ WORKDIR /tw
 COPY --from=rust-build /app_build/emojis.txt /tw/emojis.txt
 COPY --from=rust-build /app_build/target/release/bridge /tw/bridge
 
-CMD ["/tw/bridge", "bridge"]
+CMD ["/tw/bridge", "econ"]

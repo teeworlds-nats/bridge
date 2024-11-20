@@ -1,21 +1,10 @@
 use std::error::Error;
-use std::fs::File;
-use std::io::Read;
 use std::process::exit;
 use log::error;
 use tw_econ::Econ;
 use regex::{Captures, Regex};
-use crate::model::{Env, EnvHandler, RegexModel};
+use crate::model::{Env, EnvHandler, StringOrVecString, HandlerPaths};
 
-pub fn read_yaml_file(file_path: &str) -> Result<Env, Box<dyn Error>> {
-    // TODO: https://crates.io/crates/tap
-    let mut file = File::open(file_path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    let env: Env = serde_yaml::from_str(&contents)?;
-    Ok(env)
-}
 
 pub async fn econ_connect(env: Env) -> std::io::Result<Econ> {
     let mut econ = Econ::new();
@@ -55,7 +44,7 @@ fn format_mention(nickname: String) -> String {
     nickname
 }
 
-pub fn generate_text(reg: Captures, pattern: &RegexModel, env: &EnvHandler) -> Option<(String, String)> {
+pub fn generate_text(reg: Captures, pattern: &HandlerPaths, env: &EnvHandler) -> Option<(String, String)> {
     if reg.len() == 3 {
         return Some((
             format_mention(reg.get(1)?.as_str().to_string()),
@@ -65,7 +54,8 @@ pub fn generate_text(reg: Captures, pattern: &RegexModel, env: &EnvHandler) -> O
 
     let text = pattern.template
         .replacen("{{text_leave}}", &env.text_leave, 1)
-        .replacen("{{text_join}}", &env.text_join, 1);
+        .replacen("{{text_join}}", &env.text_join, 1)
+        .replacen("{{text_edit_nickname}}", &env.text_edit_nickname, 1);
 
     Some((String::new(), format_mention(env.text
         .replacen("{{text}}", &text, 1)
@@ -104,5 +94,20 @@ pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     };
     error!("{}{}", msg, text);
     exit(1);
+}
+
+
+pub fn get_path(path: Option<StringOrVecString>, default: Vec<String>) -> Vec<String> {
+    match path {
+        Some(write_path) => {
+            match write_path {
+                StringOrVecString::Single(path) => { vec!(path) }
+                StringOrVecString::Multiple(paths) => { paths }
+            }
+        }
+        None => {
+            default
+        }
+    }
 }
 
