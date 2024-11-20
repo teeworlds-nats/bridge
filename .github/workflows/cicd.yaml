@@ -25,7 +25,8 @@ jobs:
       with:
         context: .
         push: true
-        tags: econ-to-nats:${{ steps.meta.outputs.tags }}
+        # tags: econ-to-nats:${{ steps.meta.outputs.tags }}
+        tags: latest
         labels: ${{ steps.meta.outputs.labels }}
   # deploy:      
   #   name: Deploy in Kubernetes
