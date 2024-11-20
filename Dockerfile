@@ -5,7 +5,7 @@ ADD . ./app_build
 RUN apk --update add git build-base && \
     cd /app_build ; cargo build --release
 
-FROM alpine:3.17
+FROM alpine:3.20
 
 WORKDIR /tw
 
