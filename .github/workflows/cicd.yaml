@@ -12,13 +12,7 @@ jobs:
     steps:
     - name: Check out the repo
       uses: actions/checkout@v4
-
-    - name: set NOW env
-      run: echo "::set-env name=NOW::$(date +'%Y-%m-%dT%H:%M:%S')"
-
-    - name: echo NOW
-      run: echo "${{ env.NOW }}"
-
+      
     - name: Log in our registry
       uses: docker/login-action@v3
       with:
@@ -29,8 +23,10 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
+        context: .
         push: true
-        tags: teeworlds/nats/econ-to-nats:${{ env.NOW }}
+        tags: teeworlds/nats/econ-to-nats:${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
   # deploy:      
   #   name: Deploy in Kubernetes
   #   runs-on: bitnami/kubectl
