@@ -26,7 +26,7 @@ jobs:
         context: .
         push: true
         # tags: econ-to-nats:${{ steps.meta.outputs.tags }}
-        tags: econ-to-nats:latest
+        tags: d.1xxx.ru:5443/tw/nats/econ-to-nats:latest
         labels: ${{ steps.meta.outputs.labels }}
         
   # deploy:      
