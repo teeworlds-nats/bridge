@@ -10,6 +10,11 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
+    - name: "Set current date as env variable"
+      run: |
+        echo "builddate=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      id: version  # this is used on variable path
+        
     - name: Check out the repo
       uses: actions/checkout@v4
       
@@ -28,7 +33,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: d.1xxx.ru:5443/tw/nats/econ-to-nats:${{ github.event.repository.updated_at}}
+        tags: d.1xxx.ru:5443/tw/nats/econ-to-nats:${{ steps.version.outputs.builddate }}
         labels: ${{ steps.meta.outputs.labels }}
         
   # deploy:      
