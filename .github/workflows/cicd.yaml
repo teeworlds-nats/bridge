@@ -5,31 +5,41 @@ on:
     - main
     - dev
 jobs:
-  build:
-    name: Release docker image
+  build-push:
+    name: Build docker image
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    runs-on: docker
+    runs-on: ubuntu-latest
     steps:
-      - name: set NOW env
-        run: echo "::set-env name=NOW::$(date +'%Y-%m-%dT%H:%M:%S')"
+    - name: Check out the repo
+      uses: actions/checkout
 
-      # - name: Check out the repo
-      #   uses: actions/checkout@v3
+    - name: set NOW env
+      run: echo "::set-env name=NOW::$(date +'%Y-%m-%dT%H:%M:%S')"
 
-      - name: echo NOW
-        run: echo "${{ env.NOW }}"
+    - name: echo NOW
+      run: echo "${{ env.NOW }}"
 
-      - name: Log in our registry
-        uses: docker/login-action@v2
-        with:
-          registry: d.1xxx.ru:5443
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-         
-      # - uses: actions-hub/kubectl@master
-      #   env:
-      #     KUBE_HOST: ${{ secrets.KUBE_HOST }}
-      #     KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
-      #     KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
-      #   with:
-      #     args: get pods
+    - name: Log in our registry
+      uses: docker/login-action
+      with:
+        registry: d.1xxx.ru:5443
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push
+      uses: docker/build-push-action
+      with:
+        push: true
+        tags: teeworlds/nats/econ-to-nats:${{ env.NOW }}
+  # deploy:      
+  #   name: Deploy in Kubernetes
+  #   runs-on: bitnami/kubectl
+  #   steps:
+  #   - name: Deploy
+  #     uses: actions-hub/kubectl@master
+  #     env:
+  #       KUBE_HOST: ${{ secrets.KUBE_HOST }}
+  #       KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
+  #       KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
+  #     with:
+  #       args: get pods
