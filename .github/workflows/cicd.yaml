@@ -21,13 +21,14 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v2
       with:
         context: .
         push: true
         # tags: econ-to-nats:${{ steps.meta.outputs.tags }}
-        tags: latest
+        tags: econ-to-nats
         labels: ${{ steps.meta.outputs.labels }}
+        
   # deploy:      
   #   name: Deploy in Kubernetes
   #   runs-on: bitnami/kubectl
