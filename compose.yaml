@@ -1,21 +1,9 @@
 services:
   bridge:
     build: .
-    environment:
-      RUST_LOG: INFO
 
   handler:
     build: .
     command:
       - /tw/econ
       - handler
-    environment:
-      RUST_LOG: INFO
-
-  util-handler:
-    build: .
-    command:
-      - /tw/econ
-      - util-handler
-    environment:
-      RUST_LOG: INFO

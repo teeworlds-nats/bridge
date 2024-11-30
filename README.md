@@ -81,9 +81,6 @@ spec:
       containers:
       - name: bridge
         image: bridge:latest
-        env:
-          - name: RUST_LOG
-            value: "INFO"
         volumeMounts:
         - name: config
           mountPath: /tw/config.yaml
@@ -121,9 +118,6 @@ spec:
         command:
           - /tw/bridge
           - handler
-        env:
-          - name: RUST_LOG
-            value: "INFO"
         volumeMounts:
         - name: config
           mountPath: /tw/config.yaml

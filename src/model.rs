@@ -4,7 +4,8 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::process::exit;
 use serde_derive::{Deserialize, Serialize};
 use async_nats::{Client, ConnectOptions, Error as NatsError};
-use log::{debug, error};
+use env_logger::Builder;
+use log::{debug, error, LevelFilter};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use regex::Regex;
@@ -29,9 +30,8 @@ pub struct MsgUtil {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MsgHandler {
     pub server_name: Option<String>,
-    pub name: Option<String>,
+    pub args: Vec<Option<String>>,
     pub message_thread_id: String,
-    pub text: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,14 +41,6 @@ pub struct MsgBridge {
     pub text: String,
 }
 
-
-#[derive(Default)]
-pub struct RconData {
-    pub text: Option<String>,
-    pub sync: bool,
-    pub log: bool
-}
-
 nest! {
     pub struct EnvHandler {
         pub paths: Vec<
@@ -56,7 +48,8 @@ nest! {
                 pub read: String,
                 pub regex: Vec<Regex>,
                 pub write: Vec<String>,
-                pub template: String
+                pub template: String,
+                pub custom: bool,
             }>,
         pub text: String,
         pub text_leave: String,
@@ -72,6 +65,7 @@ nest! {
 nest! {
     #[derive(Clone, Deserialize)]
     pub struct Env {
+        logging: Option<String>,
         pub nats:
             #[derive(Clone, Deserialize)]
             pub struct EnvNats {
@@ -90,7 +84,8 @@ nest! {
                         pub read: Option<String>,
                         pub regex: Option<StringOrVecString>,
                         pub write: Option<StringOrVecString>,
-                        pub template: Option<String>
+                        pub template: Option<String>,
+                        pub custom: Option<bool>,
                     }>>,
             },
 
@@ -116,14 +111,6 @@ nest! {
         pub block_text_in_nickname: Option<Vec<(String, String)>>,
         pub chat_regex: Option<Vec<(String, String)>>,
         pub block_text_in_chat: Option<Vec<(String, String)>>,
-
-        // util-handler
-        pub commands: Option<
-            #[derive(Clone, Deserialize)]
-            pub struct Commands {
-                sync: Option<Vec<String>>,
-                log: Option<Vec<String>>
-            }>,
     }
 }
 
@@ -136,19 +123,9 @@ impl From<NatsHandlerPaths> for HandlerPaths {
             .collect();
         let write= get_path(item.write, vec!());
         let template = item.template.unwrap_or_default();
+        let custom = item.custom.unwrap_or_default();
 
-        HandlerPaths { read, regex, write, template }
-    }
-}
-
-impl HandlerPaths {
-    pub fn new(regex: &str) -> Self {
-        Self {
-            read: "".to_string(),
-            regex: vec!(Regex::new(regex).unwrap()),
-            write: Vec::new(),
-            template: "".to_string()
-        }
+        HandlerPaths { read, regex, write, template, custom }
     }
 }
 
@@ -161,6 +138,15 @@ impl Env {
 
         let env: Env = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
         Ok(env)
+    }
+
+    pub fn set_logging(&self) {
+        let mut builder = Builder::new();
+        builder.filter_level(LevelFilter::Info);
+        if !self.logging.is_none() {
+            builder.parse_filters(&*self.logging.clone().unwrap());
+        }
+        builder.init();
     }
 
     pub fn get_env_handler(&self) -> Result<EnvHandler, Box<dyn Error>> {
@@ -201,38 +187,6 @@ impl Env {
                 .collect()
         })
 
-    }
-
-    pub fn get_commands(&self) -> (Vec<String>, Vec<String>) {
-        let default_sync_commands = vec![
-            "ban_range".to_string(),
-            "ban".to_string(),
-            "unban_range".to_string(),
-            "unban".to_string(),
-            "muteip".to_string(),
-        ];
-
-        let default_log_commands = vec![
-            "ban".to_string(),
-            "ban_range".to_string(),
-            "unban".to_string(),
-            "unban_range".to_string(),
-            "kick".to_string(),
-            "muteid".to_string(),
-            "muteip".to_string(),
-        ];
-
-        let sync_commands = self.commands.as_ref()
-            .and_then(|commands| commands.sync.as_ref())
-            .cloned()
-            .unwrap_or(default_sync_commands);
-
-        let log_commands = self.commands.as_ref()
-            .and_then(|commands| commands.log.as_ref())
-            .cloned()
-            .unwrap_or(default_log_commands);
-
-        (sync_commands, log_commands)
     }
 
     pub fn get_econ_addr(&self) -> SocketAddr {

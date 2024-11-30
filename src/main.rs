@@ -13,9 +13,6 @@ use crate::util::errors::ConfigError;
 mod econ;
 mod handler;
 
-#[path= "util-handler/mod.rs"]
-mod util_handler;
-
 // Other
 mod model;
 mod util;
@@ -31,17 +28,15 @@ struct Cli {
 #[derive(Subcommand)]
 enum Actions {
     Econ,
-    Handler,
-    #[clap(name = "util-handler")]
-    UtilHandler
+    Handler
 }
 
 #[tokio::main]
 async fn main() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
-    let env = Env::get_yaml().await?;
-    env_logger::init();
+    let env = Env::get_yaml().await?; // TODO: rename env to config
+    env.set_logging();
 
     let term_now = Arc::new(AtomicBool::new(false));
 
@@ -63,7 +58,6 @@ async fn main() -> Result<(), ConfigError> {
     match &cli.action {
         Actions::Econ => { econ::main(env, nc, js).await.ok(); }
         Actions::Handler => { handler::main(env.get_env_handler().unwrap(), nc, js).await.ok(); }
-        Actions::UtilHandler => { util_handler::main(env, nc, js).await.ok(); }
     }
     println!("The program ran into the end");
     Ok(())

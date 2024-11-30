@@ -6,7 +6,33 @@ use crate::model::{EnvHandler, MsgBridge, MsgHandler, HandlerPaths};
 use crate::util::utils::{format_regex, format_text, generate_text};
 
 
+async fn get_json(server_name: String, args: Vec<Option<String>>, message_thread_id: String) -> String{
+    let send_msg = MsgHandler {
+        server_name: Some(server_name),
+        args,
+        message_thread_id,
+    };
+
+    match serde_json::to_string_pretty(&send_msg) {
+        Ok(str) => { str }
+        Err(err) => {
+            error!("Json Serialize Error: {}", err);
+            exit(1);
+        }
+    }
+}
+
+
 pub async fn chat_handler(msg: &MsgBridge, env: &EnvHandler, caps: Captures<'_ >, pattern: &HandlerPaths) -> String {
+    if pattern.custom {
+        let args: Vec<Option<String>> = caps.iter()
+            .filter_map(|opt_match| {
+                Some(opt_match.map(|m| m.as_str().to_string()))
+            })
+            .collect();
+        return get_json(msg.server_name.clone(), args, msg.message_thread_id.clone()).await
+    }
+
     let Some((name, text)) = generate_text(caps, pattern, env) else {
         return String::default()
     };
@@ -23,18 +49,10 @@ pub async fn chat_handler(msg: &MsgBridge, env: &EnvHandler, caps: Captures<'_ >
         ), env.nickname_regex.clone()
     );
 
-    let send_msg = MsgHandler {
-        server_name: Some(msg.server_name.clone()),
-        name: Some(name),
-        message_thread_id: msg.message_thread_id.clone(),
-        text: Some(text)
-    };
+    let args: Vec<Option<String>> = vec![Some(name), Some(text)]
+        .into_iter()
+        .filter_map(|s| Some(s))
+        .collect();
 
-    match serde_json::to_string_pretty(&send_msg) {
-        Ok(str) => { str }
-        Err(err) => {
-            error!("Json Serialize Error: {}", err);
-            exit(1);
-        }
-    }
+    get_json(msg.server_name.clone(), args, msg.message_thread_id.clone()).await
 }
