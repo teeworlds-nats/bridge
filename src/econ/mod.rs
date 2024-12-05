@@ -1,16 +1,15 @@
 pub mod handlers;
 
-use std::process::exit;
-use async_nats::Client;
-use async_nats::jetstream::Context;
-use log::{error, info};
-use tokio::sync::mpsc;
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
 use crate::model::Env;
 use crate::util::utils::{econ_connect, err_to_string_and_exit, get_path};
+use async_nats::jetstream::Context;
+use async_nats::Client;
+use log::{error, info};
+use std::process::exit;
+use tokio::sync::mpsc;
 
-
-pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result<()>  {
+pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result<()> {
     if env.message_thread_id.is_none() || env.server_name.is_none() {
         error!("econ_password and server_name must be set");
         exit(1);
@@ -31,36 +30,50 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result
     let queue_group = format!("econ.reader.{}", message_thread_id);
     let read_path: Vec<String> = get_path(
         env.nats.read_path,
-        vec!(
+        vec![
             "tw.econ.write.{{message_thread_id}}".to_string(),
-            "tw.econ.moderator".to_string()
-        )
+            "tw.econ.moderator".to_string(),
+        ],
     )
-        .iter()
-        .map(|x| x.replacen("{{message_thread_id}}", &message_thread_id, 1).replacen("{{server_name}}", &server_name, 1))
-        .collect();
+    .iter()
+    .map(|x| {
+        x.replacen("{{message_thread_id}}", &message_thread_id, 1)
+            .replacen("{{server_name}}", &server_name, 1)
+    })
+    .collect();
     let write_path: Vec<String> = get_path(
         env.nats.write_path,
-        vec!("tw.econ.read.{{message_thread_id}}".to_string())
+        vec!["tw.econ.read.{{message_thread_id}}".to_string()],
     )
-        .iter()
-        .map(|x| x.replacen("{{message_thread_id}}", &message_thread_id, 1).replacen("{{server_name}}", &server_name, 1))
-        .collect();
+    .iter()
+    .map(|x| {
+        x.replacen("{{message_thread_id}}", &message_thread_id, 1)
+            .replacen("{{server_name}}", &server_name, 1)
+    })
+    .collect();
 
-    tokio::spawn(msg_reader(econ_reader, jetstream, write_path, message_thread_id.clone(), server_name));
+    tokio::spawn(msg_reader(
+        econ_reader,
+        jetstream,
+        write_path,
+        message_thread_id.clone(),
+        server_name,
+    ));
     for path in read_path {
-        tokio::spawn(process_messages(tx.clone(), path, queue_group.clone(), nats.clone()));
+        tokio::spawn(process_messages(
+            tx.clone(),
+            path,
+            queue_group.clone(),
+            nats.clone(),
+        ));
     }
     tokio::spawn(check_status(tx.clone(), env.check_status_econ));
 
     while let Some(message) = rx.recv().await {
         match econ_write.send_line(message).await {
             Ok(_) => {}
-            Err(err) => {
-                err_to_string_and_exit("Error send_line to econ: ", Box::new(err))
-            }
+            Err(err) => err_to_string_and_exit("Error send_line to econ: ", Box::new(err)),
         };
     }
     Ok(())
 }
-

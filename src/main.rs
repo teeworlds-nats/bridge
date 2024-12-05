@@ -1,13 +1,13 @@
-use std::process::exit;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
-use signal_hook::consts::TERM_SIGNALS;
-use signal_hook::flag;
-use clap::{Parser, Subcommand};
-use tokio::time::sleep;
 use crate::model::Env;
 use crate::util::errors::ConfigError;
+use clap::{Parser, Subcommand};
+use signal_hook::consts::TERM_SIGNALS;
+use signal_hook::flag;
+use std::process::exit;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::sleep;
 
 // Actions
 mod econ;
@@ -28,7 +28,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Actions {
     Econ,
-    Handler
+    Handler,
 }
 
 #[tokio::main]
@@ -45,7 +45,7 @@ async fn main() -> Result<(), ConfigError> {
         flag::register(*sig, Arc::clone(&term_now))?;
     }
 
-    tokio::spawn( async move {
+    tokio::spawn(async move {
         while !term_now.load(Ordering::Relaxed) {
             sleep(Duration::from_secs(1)).await;
         }
@@ -56,9 +56,17 @@ async fn main() -> Result<(), ConfigError> {
     let js = async_nats::jetstream::new(nc.clone());
 
     match &cli.action {
-        Actions::Econ => { econ::main(env, nc, js).await.ok(); }
-        Actions::Handler => { handler::main(env.get_env_handler().unwrap(), nc, js).await.ok(); }
+        Actions::Econ => {
+            econ::main(env, nc, js).await.ok();
+        }
+        Actions::Handler => {
+            handler::main(env.get_env_handler().unwrap(), nc, js)
+                .await
+                .ok();
+        }
     }
-    println!("The program ran into the end");
+
+    println!("The program ran into the end\nThis may be due to the fact that the connection has not been established");
+
     Ok(())
 }

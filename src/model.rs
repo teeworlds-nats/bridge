@@ -1,18 +1,17 @@
-use std::option::Option;
-use std::error::Error;
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::process::exit;
-use serde_derive::{Deserialize, Serialize};
+use crate::util::errors::ConfigError;
+use crate::util::utils::get_path;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, error, LevelFilter};
+use nestify::nest;
+use regex::Regex;
+use serde_derive::{Deserialize, Serialize};
+use std::error::Error;
+use std::net::{SocketAddr, ToSocketAddrs};
+use std::option::Option;
+use std::process::exit;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use regex::Regex;
-use nestify::nest;
-use crate::util::errors::ConfigError;
-use crate::util::utils::get_path;
-
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum StringOrVecString {
@@ -20,11 +19,10 @@ pub enum StringOrVecString {
     Multiple(Vec<String>),
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MsgUtil {
     pub server_name: String,
-    pub rcon: String
+    pub rcon: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -117,24 +115,32 @@ nest! {
 impl From<NatsHandlerPaths> for HandlerPaths {
     fn from(item: NatsHandlerPaths) -> Self {
         let read = item.read.unwrap();
-        let regex= get_path(item.regex, vec!())
+        let regex = get_path(item.regex, vec![])
             .iter()
             .map(|x| Regex::new(x).unwrap())
             .collect();
-        let write= get_path(item.write, vec!());
+        let write = get_path(item.write, vec![]);
         let template = item.template.unwrap_or_default();
         let custom = item.custom.unwrap_or_default();
 
-        HandlerPaths { read, regex, write, template, custom }
+        HandlerPaths {
+            read,
+            regex,
+            write,
+            template,
+            custom,
+        }
     }
 }
-
 
 impl Env {
     pub async fn get_yaml() -> Result<Self, ConfigError> {
         let mut contents = String::new();
 
-        File::open("config.yaml").await?.read_to_string(&mut contents).await?;
+        File::open("config.yaml")
+            .await?
+            .read_to_string(&mut contents)
+            .await?;
 
         let env: Env = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
         Ok(env)
@@ -143,14 +149,16 @@ impl Env {
     pub fn set_logging(&self) {
         let mut builder = Builder::new();
         builder.filter_level(LevelFilter::Info);
-        if !self.logging.is_none() {
-            builder.parse_filters(&*self.logging.clone().unwrap());
+        if self.logging.is_some() {
+            builder.parse_filters(&self.logging.clone().unwrap());
         }
         builder.init();
     }
 
     pub fn get_env_handler(&self) -> Result<EnvHandler, Box<dyn Error>> {
-        let handler_paths: Vec<HandlerPaths> = self.nats.paths
+        let handler_paths: Vec<HandlerPaths> = self
+            .nats
+            .paths
             .clone()
             .unwrap_or_default()
             .iter()
@@ -159,53 +167,80 @@ impl Env {
 
         Ok(EnvHandler {
             paths: handler_paths,
-            text: self.text.clone().unwrap_or_else(|| "{{player}} {{text}}".to_string()),
-            text_leave: self.text_leave.clone().unwrap_or_else(|| "has left the game".to_string()),
-            text_join: self.text_join.clone().unwrap_or_else(|| "has join the game".to_string()),
-            text_edit_nickname: self.text_edit_nickname.clone().unwrap_or_else(|| "{{player}} > {{text}}".to_string()),
-            nickname_regex: self.nickname_regex.clone()
+            text: self
+                .text
+                .clone()
+                .unwrap_or_else(|| "{{player}} {{text}}".to_string()),
+            text_leave: self
+                .text_leave
+                .clone()
+                .unwrap_or_else(|| "has left the game".to_string()),
+            text_join: self
+                .text_join
+                .clone()
+                .unwrap_or_else(|| "has join the game".to_string()),
+            text_edit_nickname: self
+                .text_edit_nickname
+                .clone()
+                .unwrap_or_else(|| "{{player}} > {{text}}".to_string()),
+            nickname_regex: self
+                .nickname_regex
+                .clone()
                 .unwrap_or_default()
                 .iter()
                 .filter_map(|(k, v)| {
                     Regex::new(k).ok().map(|regex| (regex, v.clone())) // Клонируем v для использования в кортежах
                 })
                 .collect(),
-            block_text_in_nickname: self.block_text_in_nickname.clone()
-                .unwrap_or_else(|| vec!(("tw/".to_string(), "".to_string()), ("twitch.tv/".to_string(), "".to_string())))
+            block_text_in_nickname: self
+                .block_text_in_nickname
+                .clone()
+                .unwrap_or_else(|| {
+                    vec![
+                        ("tw/".to_string(), "".to_string()),
+                        ("twitch.tv/".to_string(), "".to_string()),
+                    ]
+                })
                 .into_iter()
                 .collect(),
-            chat_regex: self.chat_regex.clone()
+            chat_regex: self
+                .chat_regex
+                .clone()
                 .unwrap_or_default()
                 .iter()
                 .filter_map(|(k, v)| {
                     Regex::new(k).ok().map(|regex| (regex, v.clone())) // Клонируем v для использования в кортежах
                 })
                 .collect(),
-            block_text_in_chat: self.block_text_in_chat.clone()
+            block_text_in_chat: self
+                .block_text_in_chat
+                .clone()
                 .unwrap_or_default()
                 .into_iter()
-                .collect()
+                .collect(),
         })
-
     }
 
     pub fn get_econ_addr(&self) -> SocketAddr {
-        let Some(econ) = self.econ.clone() else {exit(-1)};
+        let Some(econ) = self.econ.clone() else {
+            exit(-1)
+        };
         if econ.host.is_none() {
             error!("econ.host must be set");
             exit(1);
         }
-        econ.host.unwrap().to_socket_addrs().expect("Error create econ address").next().unwrap()
+        econ.host
+            .unwrap()
+            .to_socket_addrs()
+            .expect("Error create econ address")
+            .next()
+            .unwrap()
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {
         let connect = match (self.nats.user.clone(), self.nats.password.clone()) {
-            (Some(user), Some(password)) => {
-                ConnectOptions::new().user_and_password(user, password)
-            },
-            _ => {
-                ConnectOptions::new()
-            }
+            (Some(user), Some(password)) => ConnectOptions::new().user_and_password(user, password),
+            _ => ConnectOptions::new(),
         };
         let nc = connect
             .ping_interval(std::time::Duration::from_secs(15))

@@ -1,12 +1,12 @@
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::fs;
-use once_cell::sync::Lazy;
 
 static TO_EMOJIES: Lazy<HashMap<char, String>> = Lazy::new(|| {
     // TODO: https://crates.io/crates/tap
-    let lines = fs::read_to_string("emojis.txt")
-        .expect("Failed to read file: emojis.txt");
-    let map: HashMap<char, String> = lines.lines()
+    let lines = fs::read_to_string("emojis.txt").expect("Failed to read file: emojis.txt");
+    let map: HashMap<char, String> = lines
+        .lines()
         .flat_map(|line| {
             let mut parts = line.split(',');
             let emoji = parts.next().and_then(|s| s.chars().next());

@@ -1,10 +1,9 @@
+use crate::model::{Env, EnvHandler, HandlerPaths, StringOrVecString};
+use log::error;
+use regex::{Captures, Regex};
 use std::error::Error;
 use std::process::exit;
-use log::error;
 use tw_econ::Econ;
-use regex::{Captures, Regex};
-use crate::model::{Env, EnvHandler, StringOrVecString, HandlerPaths};
-
 
 pub async fn econ_connect(env: Env) -> std::io::Result<Econ> {
     let mut econ = Econ::new();
@@ -44,24 +43,32 @@ fn format_mention(nickname: String) -> String {
     nickname
 }
 
-pub fn generate_text(reg: Captures, pattern: &HandlerPaths, env: &EnvHandler) -> Option<(String, String)> {
+pub fn generate_text(
+    reg: Captures,
+    pattern: &HandlerPaths,
+    env: &EnvHandler,
+) -> Option<(String, String)> {
     if reg.len() == 3 {
         return Some((
             format_mention(reg.get(1)?.as_str().to_string()),
-            reg.get(2)?.as_str().to_string())
-        );
+            reg.get(2)?.as_str().to_string(),
+        ));
     }
 
-    let text = pattern.template
+    let text = pattern
+        .template
         .replacen("{{text_leave}}", &env.text_leave, 1)
         .replacen("{{text_join}}", &env.text_join, 1)
         .replacen("{{text_edit_nickname}}", &env.text_edit_nickname, 1);
 
-    Some((String::new(), format_mention(env.text
-        .replacen("{{text}}", &text, 1)
-        .replacen("{{player}}", reg.get(1)?.as_str(), 1)
-    )))
-
+    Some((
+        String::new(),
+        format_mention(env.text.replacen("{{text}}", &text, 1).replacen(
+            "{{player}}",
+            reg.get(1)?.as_str(),
+            1,
+        )),
+    ))
 }
 
 pub fn format_text(mut text: String, text_vec: Vec<(String, String)>) -> String {
@@ -78,36 +85,35 @@ pub fn format_regex(mut text: String, regex_vec: Vec<(Regex, String)>) -> String
         }
         let caps = reg.captures(&text).unwrap();
         text = text.replacen(
-            &caps.get(1).expect("Format_regex except").as_str().to_string(),
+            &caps
+                .get(1)
+                .expect("Format_regex except")
+                .as_str()
+                .to_string(),
             &t,
-            1
+            1,
         );
     }
     text
 }
 
-
 pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     let text = match err.to_string().as_ref() {
-        "Broken pipe (os error 32)" => {"Server closed socket(Broken pipe, os error 32)".to_string()}
-        _ => {err.to_string()}
+        "Broken pipe (os error 32)" => "Server closed socket(Broken pipe, os error 32)".to_string(),
+        _ => err.to_string(),
     };
     error!("{}{}", msg, text);
     exit(1);
 }
 
-
 pub fn get_path(path: Option<StringOrVecString>, default: Vec<String>) -> Vec<String> {
     match path {
-        Some(write_path) => {
-            match write_path {
-                StringOrVecString::Single(path) => { vec!(path) }
-                StringOrVecString::Multiple(paths) => { paths }
+        Some(write_path) => match write_path {
+            StringOrVecString::Single(path) => {
+                vec![path]
             }
-        }
-        None => {
-            default
-        }
+            StringOrVecString::Multiple(paths) => paths,
+        },
+        None => default,
     }
 }
-
