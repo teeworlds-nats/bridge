@@ -18,8 +18,6 @@ on:
           - patch
           - minor
           - major
-      publish:
-        type: boolean
       overwrite_tag:
         type: boolean
   workflow_call:
@@ -241,9 +239,3 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: refs/tags/${{  needs.get-version.outputs.new_tag_version }}
           checksum: sha256
-
-  publish-crate:
-    needs: [create-tag]
-    if: ${{ inputs.publish }}
-    uses: ./.github/workflows/publish.yaml
-    secrets: inherit
