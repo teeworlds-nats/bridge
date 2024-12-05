@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: actions/docker/setup-buildx@v1
+
+      - name: Build Docker image
+        run: docker build -t my-bridge .
+
+      - name: Create archive
+        run: |
+          mkdir -p release
+          cp /app_build/emojis.txt release/
+          cp /app_build/target/release/bridge release/
+          tar -czf release.tar.gz release
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-${{ matrix.os }}
+          path: release.tar.gz
+
+  create_release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create a new branch
+        run: |
+          git config --local user.name "GitHub Action"
+          git config --local user.email "action@github.com"
+          git checkout -b release-${{ github.run_id }}
+
+      - name: Create a new tag
+        run: |
+          git tag -a v1.0.${{ github.run_id }} -m "Release version v1.0.${{ github.run_id }}"
+          git push origin release-${{ github.run_id }}
+          git push origin v1.0.${{ github.run_id }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_id }}
+          release_name: Release v1.0.${{ github.run_id }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
