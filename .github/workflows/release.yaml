@@ -1,14 +1,14 @@
 name: Release
 
 on:
-  workflow_dispatch:  # Позволяет запускать workflow вручную
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # Укажите нужные ОС для сборки
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout code
