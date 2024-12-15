@@ -1,4 +1,4 @@
-use crate::model::Env;
+use crate::model::Config;
 use crate::util::errors::ConfigError;
 use clap::{Parser, Subcommand};
 use signal_hook::consts::TERM_SIGNALS;
@@ -35,8 +35,8 @@ enum Actions {
 async fn main() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
-    let env = Env::get_yaml().await?; // TODO: rename env to config
-    env.set_logging();
+    let config = Config::get_yaml().await?;
+    config.set_logging();
 
     let term_now = Arc::new(AtomicBool::new(false));
 
@@ -52,17 +52,15 @@ async fn main() -> Result<(), ConfigError> {
         exit(1);
     });
 
-    let nc = env.connect_nats().await.unwrap();
+    let nc = config.connect_nats().await.unwrap();
     let js = async_nats::jetstream::new(nc.clone());
 
     match &cli.action {
         Actions::Econ => {
-            econ::main(env, nc, js).await.ok();
+            econ::main(config, nc, js).await.ok();
         }
         Actions::Handler => {
-            handler::main(env.get_env_handler().unwrap(), nc, js)
-                .await
-                .ok();
+            handler::main(config.get_env_handler().unwrap(), nc, js).await.ok();
         }
     }
 

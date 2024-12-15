@@ -1,25 +1,14 @@
 pub mod handlers;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
-use crate::model::Env;
-use crate::util::utils::{econ_connect, err_to_string_and_exit, get_path};
+use crate::model::Config;
+use crate::util::utils::{econ_connect, err_to_string_and_exit};
 use async_nats::jetstream::Context;
 use async_nats::Client;
-use log::{error, info};
-use std::process::exit;
+use log::info;
 use tokio::sync::mpsc;
 
-pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result<()> {
-    if env.message_thread_id.is_none() || env.server_name.is_none() {
-        error!("econ_password and server_name must be set");
-        exit(1);
-    }
-
-    let Some(message_thread_id) = env.message_thread_id.clone() else {
-        error!("message_thread_id is none");
-        exit(1)
-    };
-
+pub async fn main(env: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
     let server_name = env.server_name.clone().unwrap_or_default();
 
     let (tx, mut rx) = mpsc::channel(32);
@@ -27,27 +16,27 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result
     let mut econ_write = econ_connect(env.clone()).await?;
     info!("econ_reader and econ_write connected");
 
-    let queue_group = format!("econ.reader.{}", message_thread_id);
-    let read_path: Vec<String> = get_path(
-        env.nats.read_path,
+    let message_thread_id = env.message_thread_id.clone();
+
+    let queue_group = format!("econ.reader.{}", message_thread_id.clone().unwrap_or(env.server_name.unwrap_or_default()));
+    let read_path: Vec<String> = env.nats.read_path.unwrap_or(
         vec![
             "tw.econ.write.{{message_thread_id}}".to_string(),
             "tw.econ.moderator".to_string(),
-        ],
+        ]
     )
     .iter()
     .map(|x| {
-        x.replacen("{{message_thread_id}}", &message_thread_id, 1)
+        x.replacen("{{message_thread_id}}", &message_thread_id.clone().unwrap_or_default(), 1)
             .replacen("{{server_name}}", &server_name, 1)
     })
     .collect();
-    let write_path: Vec<String> = get_path(
-        env.nats.write_path,
-        vec!["tw.econ.read.{{message_thread_id}}".to_string()],
+    let write_path: Vec<String> = env.nats.write_path.unwrap_or(
+        vec!["tw.econ.read.{{message_thread_id}}".to_string()]
     )
     .iter()
     .map(|x| {
-        x.replacen("{{message_thread_id}}", &message_thread_id, 1)
+        x.replacen("{{message_thread_id}}", &message_thread_id.clone().unwrap_or_default(), 1)
             .replacen("{{server_name}}", &server_name, 1)
     })
     .collect();
@@ -56,7 +45,7 @@ pub async fn main(env: Env, nats: Client, jetstream: Context) -> std::io::Result
         econ_reader,
         jetstream,
         write_path,
-        message_thread_id.clone(),
+        env.message_thread_id.clone(),
         server_name,
     ));
     for path in read_path {

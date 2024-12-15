@@ -1,11 +1,11 @@
-use crate::model::{Env, EnvHandler, HandlerPaths, StringOrVecString};
+use crate::model::{Config, EnvHandler, HandlerPaths};
 use log::error;
 use regex::{Captures, Regex};
 use std::error::Error;
 use std::process::exit;
 use tw_econ::Econ;
 
-pub async fn econ_connect(env: Env) -> std::io::Result<Econ> {
+pub async fn econ_connect(env: Config) -> std::io::Result<Econ> {
     let mut econ = Econ::new();
     if env.econ.is_none() {
         error!("econ must be set, see config_example.yaml");
@@ -104,16 +104,4 @@ pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     };
     error!("{}{}", msg, text);
     exit(1);
-}
-
-pub fn get_path(path: Option<StringOrVecString>, default: Vec<String>) -> Vec<String> {
-    match path {
-        Some(write_path) => match write_path {
-            StringOrVecString::Single(path) => {
-                vec![path]
-            }
-            StringOrVecString::Multiple(paths) => paths,
-        },
-        None => default,
-    }
 }
