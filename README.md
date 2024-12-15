@@ -41,20 +41,22 @@ stringData:
   config.yaml: |
     nats:
       server: nats.nats:4222
-        paths:
-    - read: tw.econ.read.*
-      regex:
-        !Multiple
-        - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
-        - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
-        - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-        - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
-        - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
-      write: !Single tw.tg.{{thread_id}}
-    - read: tw.econ.read.*
-      regex: !Single "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
-      write: !Single tw.tg.{{thread_id}}
-      template: "{{text_join}}"
+          paths:
+            - read: tw.econ.read.*
+              regex:
+                - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
+                - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
+                - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
+                - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
+                - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
+              write:
+                - tw.tg.{{thread_id}}
+            - read: tw.econ.read.*
+              regex:
+                - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
+              write:
+                - tw.tg.{{thread_id}}
+              template: "{{text_join}}"
 ```
 
 ddnet-econ-deployment.yaml

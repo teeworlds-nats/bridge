@@ -1,5 +1,4 @@
 use crate::util::errors::ConfigError;
-use crate::util::utils::get_path;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, error, LevelFilter};
@@ -13,29 +12,17 @@ use std::process::exit;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum StringOrVecString {
-    Single(String),
-    Multiple(Vec<String>),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MsgUtil {
-    pub server_name: String,
-    pub rcon: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MsgHandler {
     pub server_name: Option<String>,
     pub args: Vec<Option<String>>,
-    pub message_thread_id: String,
+    pub message_thread_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgBridge {
     pub server_name: String,
-    pub message_thread_id: String,
+    pub message_thread_id: Option<String>,
     pub text: String,
 }
 
@@ -62,7 +49,7 @@ nest! {
 
 nest! {
     #[derive(Clone, Deserialize)]
-    pub struct Env {
+    pub struct Config {
         logging: Option<String>,
         pub nats:
             #[derive(Clone, Deserialize)]
@@ -72,16 +59,16 @@ nest! {
                 pub password: Option<String>,
 
                 // Econ
-                pub read_path: Option<StringOrVecString>,
-                pub write_path: Option<StringOrVecString>,
+                pub read_path: Option<Vec<String>>,
+                pub write_path: Option<Vec<String>>,
 
                 // Handler
                 pub paths: Option<Vec<
                     #[derive(Clone, Deserialize)]
                     pub struct NatsHandlerPaths {
                         pub read: Option<String>,
-                        pub regex: Option<StringOrVecString>,
-                        pub write: Option<StringOrVecString>,
+                        pub regex: Option<Vec<String>>,
+                        pub write: Option<Vec<String>>,
                         pub template: Option<String>,
                         pub custom: Option<bool>,
                     }>>,
@@ -115,11 +102,11 @@ nest! {
 impl From<NatsHandlerPaths> for HandlerPaths {
     fn from(item: NatsHandlerPaths) -> Self {
         let read = item.read.unwrap();
-        let regex = get_path(item.regex, vec![])
+        let regex = item.regex.unwrap_or_default()
             .iter()
             .map(|x| Regex::new(x).unwrap())
             .collect();
-        let write = get_path(item.write, vec![]);
+        let write = item.write.unwrap_or_default();
         let template = item.template.unwrap_or_default();
         let custom = item.custom.unwrap_or_default();
 
@@ -133,7 +120,7 @@ impl From<NatsHandlerPaths> for HandlerPaths {
     }
 }
 
-impl Env {
+impl Config {
     pub async fn get_yaml() -> Result<Self, ConfigError> {
         let mut contents = String::new();
 
@@ -142,7 +129,7 @@ impl Env {
             .read_to_string(&mut contents)
             .await?;
 
-        let env: Env = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
+        let env: Config = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
         Ok(env)
     }
 

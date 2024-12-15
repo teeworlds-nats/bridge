@@ -52,13 +52,14 @@ pub async fn msg_reader(
     mut econ: Econ,
     jetstream: Context,
     nats_path: Vec<String>,
-    message_thread_id: String,
+    message_thread_id: Option<String>,
     server_name: String,
 ) -> Result<(), PublishError> {
     let publish_stream: Vec<String> = nats_path
         .iter()
         .map(|x| {
-            x.replace("{{message_thread_id}}", &message_thread_id.clone())
+            x
+                .replace("{{message_thread_id}}", &message_thread_id.clone().unwrap_or_default())
                 .replace("{{server_name}}", &server_name.clone())
         })
         .collect();

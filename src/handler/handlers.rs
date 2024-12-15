@@ -8,7 +8,7 @@ use std::process::exit;
 async fn get_json(
     server_name: String,
     args: Vec<Option<String>>,
-    message_thread_id: String,
+    message_thread_id: Option<String>,
 ) -> String {
     let send_msg = MsgHandler {
         server_name: Some(server_name),

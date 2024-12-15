@@ -47,10 +47,10 @@ pub async fn main(
                         break;
                     }
 
-                    debug!("sent json to {}: {}", pattern.read, json);
+                    debug!("sent json to {:?}: {}", pattern.write, json);
                     for write_path in &pattern.write {
                         let path = write_path
-                            .replacen("{{message_thread_id}}", &msg.message_thread_id, 1)
+                            .replacen("{{message_thread_id}}", &msg.message_thread_id.clone().unwrap_or(msg.server_name.clone()), 1)
                             .replacen("{{server_name}}", &msg.server_name, 1);
 
                         jetstream
