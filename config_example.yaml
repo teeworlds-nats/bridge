@@ -4,9 +4,9 @@ message_thread_id: "1379"
 nats:
   server: nats://nats:4222
   # Econ or UtilHandler
-  write_path: !Single tw.econ.read.1379 # option
+  write_path:
+    - tw.econ.read.1379 # option
   read_path: # option
-    !Multiple
     - tw.econ.read.1373
     - tw.econ.test.1373
 
