@@ -50,12 +50,12 @@ stringData:
                 - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
                 - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
               write:
-                - tw.tg.{{thread_id}}
+                - tw.tg.{{message_thread_id}}
             - read: tw.econ.read.*
               regex:
                 - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
               write:
-                - tw.tg.{{thread_id}}
+                - tw.tg.{{message_thread_id}}
               template: "{{text_join}}"
 ```
 
