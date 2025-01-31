@@ -1,20 +1,19 @@
-use crate::model::{EnvHandler, HandlerPaths, MsgBridge, MsgHandler};
+use crate::econ::model::MsgBridge;
+use crate::handler::model::{ConfigHandler, HandlerPaths, MsgHandler};
 use crate::util::emojis::replace_from_emoji;
 use crate::util::utils::{format_regex, format_text, generate_text};
 use log::error;
 use regex::Captures;
+use serde_json::Value as JsonValue;
+use serde_yaml::Value as YamlValue;
 use std::process::exit;
 
-async fn get_json(
-    server_name: String,
-    args: Vec<Option<String>>,
-    message_thread_id: Option<String>,
-) -> String {
-    let send_msg = MsgHandler {
-        server_name: Some(server_name),
-        args,
-        message_thread_id,
-    };
+async fn get_json(value: Vec<Option<String>>, yaml_args: YamlValue) -> String {
+    let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
+        error!("Transfer YamlValue to JsonValue Failed: {}", err);
+        exit(1)
+    });
+    let send_msg = MsgHandler { value, args };
 
     match serde_json::to_string_pretty(&send_msg) {
         Ok(str) => str,
@@ -27,17 +26,17 @@ async fn get_json(
 
 pub async fn chat_handler(
     msg: &MsgBridge,
-    env: &EnvHandler,
+    env: &ConfigHandler,
     caps: Captures<'_>,
     pattern: &HandlerPaths,
 ) -> String {
     if pattern.custom {
-        let args: Vec<Option<String>> = caps
+        let value: Vec<Option<String>> = caps
             .iter()
             .map(|opt_match| opt_match.map(|m| m.as_str().to_string()))
             .collect();
 
-        return get_json(msg.server_name.clone(), args, msg.message_thread_id.clone()).await;
+        return get_json(value, msg.clone().args).await;
     }
 
     let Some((name, text)) = generate_text(caps, pattern, env) else {
@@ -54,7 +53,7 @@ pub async fn chat_handler(
         env.nickname_regex.clone(),
     );
 
-    let args: Vec<Option<String>> = vec![Some(name), Some(text)];
+    let value: Vec<Option<String>> = vec![Some(name), Some(text)];
 
-    get_json(msg.server_name.clone(), args, msg.message_thread_id.clone()).await
+    get_json(value, msg.clone().args.into()).await
 }

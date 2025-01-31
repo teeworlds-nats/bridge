@@ -1,10 +1,11 @@
-use crate::model::MsgBridge;
+use crate::econ::model::MsgBridge;
 use async_nats::jetstream::context::PublishError;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use bytes::Bytes;
 use futures_util::StreamExt;
 use log::{debug, error, info};
+use serde_yaml::Value;
 use std::process::exit;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
@@ -52,15 +53,23 @@ pub async fn msg_reader(
     mut econ: Econ,
     jetstream: Context,
     nats_path: Vec<String>,
-    message_thread_id: Option<String>,
-    server_name: String,
+    args: Value,
 ) -> Result<(), PublishError> {
+    let server_name = args
+        .get("server_name")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let message_thread_id = args
+        .get("message_thread_id")
+        .and_then(Value::as_i64)
+        .unwrap_or(0)
+        .to_string();
+
     let publish_stream: Vec<String> = nats_path
         .iter()
         .map(|x| {
-            x
-                .replace("{{message_thread_id}}", &message_thread_id.clone().unwrap_or_default())
-                .replace("{{server_name}}", &server_name.clone())
+            x.replace("{{message_thread_id}}", &message_thread_id)
+                .replace("{{server_name}}", &server_name)
         })
         .collect();
 
@@ -76,9 +85,8 @@ pub async fn msg_reader(
         if let Some(message) = line {
             debug!("Recevered line from econ: {}", message);
             let send_msg = MsgBridge {
-                server_name: server_name.clone(),
-                message_thread_id: message_thread_id.clone(),
                 text: message,
+                args: args.clone(),
             };
 
             let json = match serde_json::to_string_pretty(&send_msg) {

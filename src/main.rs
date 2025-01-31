@@ -12,6 +12,8 @@ use tokio::time::sleep;
 // Actions
 mod econ;
 mod handler;
+#[path = "./handler-auto/mod.rs"]
+mod handler_auto;
 
 // Other
 mod model;
@@ -29,6 +31,7 @@ struct Cli {
 enum Actions {
     Econ,
     Handler,
+    HandlerAuto,
 }
 
 #[tokio::main]
@@ -60,7 +63,12 @@ async fn main() -> Result<(), ConfigError> {
             econ::main(config, nc, js).await.ok();
         }
         Actions::Handler => {
-            handler::main(config.get_env_handler().unwrap(), nc, js).await.ok();
+            handler::main(config.get_env_handler().unwrap(), nc, js)
+                .await
+                .ok();
+        }
+        Actions::HandlerAuto => {
+            handler_auto::main(config, nc, js).await.ok();
         }
     }
 

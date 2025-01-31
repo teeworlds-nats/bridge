@@ -1,36 +1,50 @@
 mod handlers;
 pub mod model;
+mod regex;
 
 use crate::econ::model::MsgBridge;
-use crate::handler::handlers::chat_handler;
-use crate::handler::model::{ConfigHandler, HandlerPaths};
-use crate::util::utils::replace_value_single;
+use crate::handler_auto::handlers::caps_handler;
+use crate::handler_auto::regex::DEFAULT_REGEX;
+use crate::model::{Config, RegexData};
 use async_nats::jetstream::Context;
 use async_nats::Client;
-use futures::future::join_all;
-use futures::StreamExt;
+use futures_util::future::join_all;
+use futures_util::StreamExt;
 use log::{debug, error, info};
-use serde_yaml::Value;
 use std::process::exit;
 use tokio::io;
 
 async fn handler(
-    config: ConfigHandler,
+    config: Config,
     nats: Client,
     jetstream: Context,
-    path: HandlerPaths,
+    regex: &RegexData,
     task_count: i32,
 ) -> Result<(), async_nats::Error> {
+    let from = config
+        .nats
+        .clone()
+        .from
+        .unwrap_or(vec!["tw.econ.read.*".to_string()]);
+    let to = config.nats.clone().to.unwrap_or(vec![
+        "tw.{{regex_name}}.{{logging_level}}.{{logging_name}}".to_string(),
+    ]);
+
+    if to.len() > 1 || from.len() > 1 {
+        error!("count nats.from or nats.to > 1");
+        exit(1)
+    }
+
+    let from = from.get(0).unwrap().to_owned();
+    let to = to.get(0).unwrap().to_owned();
+
     let mut subscriber = nats
-        .queue_subscribe(path.from.clone(), format!("handler_{}", task_count))
+        .queue_subscribe(from.clone(), format!("handler_auto_{}", task_count))
         .await?;
 
     info!(
-        "Handler started from {} to {:?}, regex.len: {}, job_id: {}",
-        path.from,
-        path.to,
-        path.regex.len(),
-        task_count
+        "Handler started from {} to {}, regex_name: {}, job_id: {}",
+        from, to, regex.name, task_count
     );
     while let Some(message) = subscriber.next().await {
         debug!(
@@ -47,55 +61,45 @@ async fn handler(
                 exit(1);
             }
         };
-        for regex in &path.regex {
-            if let Some(caps) = regex.captures(&msg.text) {
-                let json = chat_handler(&msg, &config, caps, &path).await;
-
-                if json.is_empty() {
-                    break;
+        if let Some(caps) = regex.regex.captures(&msg.text) {
+            let data = caps_handler(&msg, caps).await;
+            let json = match serde_json::to_string_pretty(&data) {
+                Ok(str) => str,
+                Err(err) => {
+                    error!("Json Serialize Error: {}", err);
+                    exit(1);
                 }
-
-                let server_name = msg
-                    .args
-                    .get("server_name")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string();
-                let message_thread_id = msg
-                    .args
-                    .get("message_thread_id")
-                    .and_then(Value::as_i64)
-                    .unwrap_or(0)
-                    .to_string();
-
-                debug!("sent json to {:?}: {}", path.to, json);
-                for write_path in &path.to {
-                    let path =
-                        replace_value_single(write_path, &message_thread_id, &server_name).await;
-
-                    jetstream
-                        .publish(path, json.clone().into())
-                        .await
-                        .expect("Error publish message to tw.messages");
-                }
+            };
+            if data.data.text.is_empty() {
                 break;
             }
+
+            let path = to
+                .replace("{{regex_name}}", &regex.name)
+                .replace("{{logging_level}}", &*data.data.logging_level)
+                .replace("{{logging_name}}", &*data.data.logging_name);
+
+            debug!("sent json to {}: {}", path, json);
+            jetstream
+                .publish(path, json.clone().into())
+                .await
+                .expect("Error publish message to tw.messages");
         }
     }
 
     Ok(())
 }
 
-pub async fn main(config: ConfigHandler, nats: Client, jetstream: Context) -> io::Result<()> {
+pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Result<()> {
     let mut tasks = vec![];
     let mut task_count = 0;
 
-    for path in config.clone().paths {
+    for regex in DEFAULT_REGEX.iter() {
         let task = tokio::spawn(handler(
             config.clone(),
             nats.clone(),
             jetstream.clone(),
-            path,
+            regex,
             task_count,
         ));
         task_count += 1;

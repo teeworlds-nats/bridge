@@ -1,37 +1,32 @@
-server_name: Fng
-message_thread_id: "1379"
-
 nats:
   server: nats://nats:4222
-  # Econ or UtilHandler
-  write_path:
-    - tw.econ.read.1379 # option
-  read_path: # option
-    - tw.econ.read.1373
-    - tw.econ.test.1373
 
   # Handler
   paths:
-    - read: tw.econ.read.*
+    - from: tw.econ.read.*
       regex:
         - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
         - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
         - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
         - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
         - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
-      write:
+      to:
         - tw.tg.{{message_thread_id}}
-    #- read: tw.econ.read.*
+    #- from: tw.econ.read.*
     #  regex: "\\[game]: leave player='\\d+:(.*)'" # teeworldsLeaveRegex
     #  write:
     #    - tw.tg.{{message_thread_id}}
     #  template: "{{text_leave}}"
-    - read: tw.econ.read.*
+    - from: tw.econ.read.*
       regex:
         - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
       write:
         - tw.tg.{{message_thread_id}}
       template: "{{text_join}}"
+
+args:
+  server_name: Fng
+  message_thread_id: 1379 # Int only
 
 econ:
   host: 127.0.0.1:8303

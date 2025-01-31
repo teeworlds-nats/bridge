@@ -1,4 +1,5 @@
-use crate::model::{Config, EnvHandler, HandlerPaths};
+use crate::handler::model::{ConfigHandler, HandlerPaths};
+use crate::model::Config;
 use log::error;
 use regex::{Captures, Regex};
 use std::error::Error;
@@ -32,7 +33,7 @@ pub async fn econ_connect(env: Config) -> std::io::Result<Econ> {
     Ok(econ)
 }
 
-fn format_mention(nickname: String) -> String {
+pub fn format_mention(nickname: String) -> String {
     if nickname.is_empty() {
         return nickname;
     }
@@ -46,7 +47,7 @@ fn format_mention(nickname: String) -> String {
 pub fn generate_text(
     reg: Captures,
     pattern: &HandlerPaths,
-    env: &EnvHandler,
+    env: &ConfigHandler,
 ) -> Option<(String, String)> {
     if reg.len() == 3 {
         return Some((
@@ -104,4 +105,27 @@ pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     };
     error!("{}{}", msg, text);
     exit(1);
+}
+
+pub async fn replace_value<T>(input: T, message_thread_id: &str, server_name: &str) -> Vec<String>
+where
+    T: IntoIterator<Item = String>,
+{
+    input
+        .into_iter()
+        .map(|item| {
+            item.replace("{{message_thread_id}}", message_thread_id)
+                .replace("{{server_name}}", server_name)
+        })
+        .collect()
+}
+
+pub async fn replace_value_single(
+    value: &str,
+    message_thread_id: &str,
+    server_name: &str,
+) -> String {
+    value
+        .replace("{{message_thread_id}}", message_thread_id)
+        .replace("{{server_name}}", server_name)
 }

@@ -43,18 +43,18 @@ stringData:
       server: nats.nats:4222
           paths:
             - read: tw.econ.read.*
-              regex:
+              from:
                 - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
                 - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
                 - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
                 - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
                 - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
-              write:
+              to:
                 - tw.tg.{{message_thread_id}}
-            - read: tw.econ.read.*
+            - from: tw.econ.read.*
               regex:
                 - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
-              write:
+              to:
                 - tw.tg.{{message_thread_id}}
               template: "{{text_join}}"
 ```
