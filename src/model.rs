@@ -23,7 +23,7 @@ impl RegexData {
     pub fn new(name: String, regex: String) -> Self {
         Self {
             name,
-            regex: Regex::new(&*regex).unwrap(),
+            regex: Regex::new(&regex).unwrap(),
         }
     }
 }

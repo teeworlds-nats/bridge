@@ -19,7 +19,7 @@ async fn handler(
     nats: Client,
     jetstream: Context,
     regex: &RegexData,
-    task_count: i32,
+    task_count: usize,
 ) -> Result<(), async_nats::Error> {
     let from = config
         .nats
@@ -35,8 +35,8 @@ async fn handler(
         exit(1)
     }
 
-    let from = from.get(0).unwrap().to_owned();
-    let to = to.get(0).unwrap().to_owned();
+    let from = from.first().unwrap().to_owned();
+    let to = to.first().unwrap().to_owned();
 
     let mut subscriber = nats
         .queue_subscribe(from.clone(), format!("handler_auto_{}", task_count))
@@ -76,8 +76,8 @@ async fn handler(
 
             let path = to
                 .replace("{{regex_name}}", &regex.name)
-                .replace("{{logging_level}}", &*data.data.logging_level)
-                .replace("{{logging_name}}", &*data.data.logging_name);
+                .replace("{{logging_level}}", &data.data.logging_level)
+                .replace("{{logging_name}}", &data.data.logging_name);
 
             debug!("sent json to {}: {}", path, json);
             jetstream
@@ -92,9 +92,8 @@ async fn handler(
 
 pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Result<()> {
     let mut tasks = vec![];
-    let mut task_count = 0;
 
-    for regex in DEFAULT_REGEX.iter() {
+    for (task_count, regex) in DEFAULT_REGEX.iter().enumerate() {
         let task = tokio::spawn(handler(
             config.clone(),
             nats.clone(),
@@ -102,7 +101,6 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Resul
             regex,
             task_count,
         ));
-        task_count += 1;
         tasks.push(task);
     }
 

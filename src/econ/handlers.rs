@@ -69,7 +69,7 @@ pub async fn msg_reader(
         .iter()
         .map(|x| {
             x.replace("{{message_thread_id}}", &message_thread_id)
-                .replace("{{server_name}}", &server_name)
+                .replace("{{server_name}}", server_name)
         })
         .collect();
 

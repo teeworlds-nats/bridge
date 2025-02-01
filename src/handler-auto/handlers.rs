@@ -59,5 +59,5 @@ pub async fn caps_handler(msg: &MsgBridge, caps: Captures<'_>) -> MsgHandlerAuto
         logging_name,
     };
 
-    get_data(data, msg.clone().args.into()).await
+    get_data(data, msg.clone().args).await
 }

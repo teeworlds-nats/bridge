@@ -19,7 +19,7 @@ async fn handler(
     nats: Client,
     jetstream: Context,
     path: HandlerPaths,
-    task_count: i32,
+    task_count: usize,
 ) -> Result<(), async_nats::Error> {
     let mut subscriber = nats
         .queue_subscribe(path.from.clone(), format!("handler_{}", task_count))
@@ -88,9 +88,8 @@ async fn handler(
 
 pub async fn main(config: ConfigHandler, nats: Client, jetstream: Context) -> io::Result<()> {
     let mut tasks = vec![];
-    let mut task_count = 0;
 
-    for path in config.clone().paths {
+    for (task_count, path) in config.clone().paths.into_iter().enumerate() {
         let task = tokio::spawn(handler(
             config.clone(),
             nats.clone(),
@@ -98,7 +97,6 @@ pub async fn main(config: ConfigHandler, nats: Client, jetstream: Context) -> io
             path,
             task_count,
         ));
-        task_count += 1;
         tasks.push(task);
     }
 

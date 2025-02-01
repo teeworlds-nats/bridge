@@ -55,5 +55,5 @@ pub async fn chat_handler(
 
     let value: Vec<Option<String>> = vec![Some(name), Some(text)];
 
-    get_json(value, msg.clone().args.into()).await
+    get_json(value, msg.clone().args).await
 }
