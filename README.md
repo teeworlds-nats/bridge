@@ -20,13 +20,14 @@ metadata:
 type: Opaque
 stringData:
   config.yaml: |
-    server_name: ddnet
-    message_thread_id: "<thread-telegram-id>"
     nats:
       server: nats.nats:4222
     econ:
       host: <server>:8303
       password: amogus
+    args:
+      server_name: ddnet
+      message_thread_id: <thread-telegram-id>
 ```
 
 bridge-handler-secret.yaml
@@ -41,22 +42,22 @@ stringData:
   config.yaml: |
     nats:
       server: nats.nats:4222
-          paths:
-            - read: tw.econ.read.*
-              from:
-                - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
-                - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
-                - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-                - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
-                - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
-              to:
-                - tw.tg.{{message_thread_id}}
-            - from: tw.econ.read.*
-              regex:
-                - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
-              to:
-                - tw.tg.{{message_thread_id}}
-              template: "{{text_join}}"
+    paths:
+      - from: tw.econ.read.*
+        regex:
+          - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
+          - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
+          - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
+          - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
+          - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
+        to:
+          - tw.tg.{{message_thread_id}}
+      - from: tw.econ.read.*
+        regex:
+          - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
+        to:
+          - tw.tg.{{message_thread_id}}
+        template: "{{text_join}}"
 ```
 
 ddnet-econ-deployment.yaml
@@ -87,6 +88,8 @@ spec:
         - name: config
           mountPath: /tw/config.yaml
           subPath: config.yaml
+      imagePullSecrets:
+        - name: secret
       volumes:
       - name: config
         secret:
@@ -124,6 +127,8 @@ spec:
         - name: config
           mountPath: /tw/config.yaml
           subPath: config.yaml
+      imagePullSecrets:
+        - name: secret
       volumes:
       - name: config
         secret:

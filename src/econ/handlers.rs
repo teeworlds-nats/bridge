@@ -113,12 +113,7 @@ pub async fn check_status(tx: Sender<String>, check_status_econ_sleep: Option<u6
     let check_status_econ_sleep = check_status_econ_sleep.unwrap_or(15);
     loop {
         debug!("check status econ");
-        match tx.send("".to_string()).await {
-            Ok(_) => {}
-            Err(err) => {
-                error!("tx.send error: {}", err)
-            }
-        };
+        tx.send("".to_string()).await.expect("tx.send error");
         sleep(Duration::from_secs(check_status_econ_sleep)).await;
     }
 }
