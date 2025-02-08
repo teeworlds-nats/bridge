@@ -1,15 +1,15 @@
+use crate::model::{Config, NatsHandlerPaths};
 use nestify::nest;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
+use serde_json::Value;
 use std::error::Error;
 use std::option::Option;
-use serde_json::Value;
-use crate::model::{Config, NatsHandlerPaths};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MsgHandler {
     pub value: Vec<Option<String>>,
-    pub args: Value
+    pub args: Value,
 }
 
 nest! {
@@ -37,7 +37,9 @@ nest! {
 impl From<NatsHandlerPaths> for HandlerPaths {
     fn from(item: NatsHandlerPaths) -> Self {
         let from = item.from.unwrap();
-        let regex = item.regex.unwrap_or_default()
+        let regex = item
+            .regex
+            .unwrap_or_default()
             .iter()
             .map(|x| Regex::new(x).unwrap())
             .collect();

@@ -12,8 +12,12 @@ use tokio::sync::mpsc;
 
 pub async fn main(env: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
-    let econ_reader = econ_connect(env.clone()).await.expect("econ_reader failed connect");
-    let mut econ_write = econ_connect(env.clone()).await.expect("econ_write failed connect");
+    let econ_reader = econ_connect(env.clone())
+        .await
+        .expect("econ_reader failed connect");
+    let mut econ_write = econ_connect(env.clone())
+        .await
+        .expect("econ_write failed connect");
     info!("econ_reader and econ_write connected");
 
     let args = env.args;
