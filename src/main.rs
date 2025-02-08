@@ -14,7 +14,6 @@ mod econ;
 mod handler;
 #[path = "./handler-auto/mod.rs"]
 mod handler_auto;
-mod transfer;
 
 // Other
 mod model;
