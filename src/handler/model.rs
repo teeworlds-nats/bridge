@@ -91,9 +91,7 @@ impl Config {
                 .clone()
                 .unwrap_or_default()
                 .iter()
-                .filter_map(|(k, v)| {
-                    Regex::new(k).ok().map(|regex| (regex, v.clone()))
-                })
+                .filter_map(|(k, v)| Regex::new(k).ok().map(|regex| (regex, v.clone())))
                 .collect(),
             block_text_in_nickname: self
                 .block_text_in_nickname
@@ -111,9 +109,7 @@ impl Config {
                 .clone()
                 .unwrap_or_default()
                 .iter()
-                .filter_map(|(k, v)| {
-                    Regex::new(k).ok().map(|regex| (regex, v.clone()))
-                })
+                .filter_map(|(k, v)| Regex::new(k).ok().map(|regex| (regex, v.clone())))
                 .collect(),
             block_text_in_chat: self
                 .block_text_in_chat
