@@ -57,7 +57,7 @@ nest! {
 
         // econ
 
-        pub check_status_econ: Option<u64>, // In Sec
+        pub check_status_econ_sec: Option<u64>,
         pub econ: Option<
             #[derive(Clone, Deserialize)]
             pub struct EnvEcon {

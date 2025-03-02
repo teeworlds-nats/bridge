@@ -106,6 +106,7 @@ pub async fn msg_reader(
             }
         }
     }
+    debug!("msg_reader dead");
     exit(-1);
 }
 
@@ -113,7 +114,9 @@ pub async fn check_status(tx: Sender<String>, check_status_econ_sleep: Option<u6
     let check_status_econ_sleep = check_status_econ_sleep.unwrap_or(15);
     loop {
         debug!("check status econ");
-        tx.send("".to_string()).await.expect("tx.send error");
+        tx.send("".to_string())
+            .await
+            .expect("tx.send error, check_status failed");
         sleep(Duration::from_secs(check_status_econ_sleep)).await;
     }
 }

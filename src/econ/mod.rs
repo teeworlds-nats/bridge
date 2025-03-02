@@ -11,7 +11,7 @@ use serde_yaml::Value;
 use tokio::sync::mpsc;
 
 pub async fn main(env: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
-    let (tx, mut rx) = mpsc::channel(32);
+    let (tx, mut rx) = mpsc::channel(64);
     let econ_reader = econ_connect(env.clone())
         .await
         .expect("econ_reader failed connect");
@@ -61,7 +61,7 @@ pub async fn main(env: Config, nats: Client, jetstream: Context) -> std::io::Res
             nats.clone(),
         ));
     }
-    tokio::spawn(check_status(tx.clone(), env.check_status_econ));
+    tokio::spawn(check_status(tx.clone(), env.check_status_econ_sec));
 
     while let Some(message) = rx.recv().await {
         match econ_write.send_line(message).await {

@@ -13,10 +13,10 @@ pub struct MsgHandler {
 }
 
 nest! {
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub struct ConfigHandler {
         pub paths: Vec<
-            #[derive(Clone)]
+            #[derive(Debug, Clone)]
             pub struct HandlerPaths {
                 pub from: String,
                 pub regex: Vec<Regex>,
@@ -92,7 +92,7 @@ impl Config {
                 .unwrap_or_default()
                 .iter()
                 .filter_map(|(k, v)| {
-                    Regex::new(k).ok().map(|regex| (regex, v.clone())) // Клонируем v для использования в кортежах
+                    Regex::new(k).ok().map(|regex| (regex, v.clone()))
                 })
                 .collect(),
             block_text_in_nickname: self
@@ -112,7 +112,7 @@ impl Config {
                 .unwrap_or_default()
                 .iter()
                 .filter_map(|(k, v)| {
-                    Regex::new(k).ok().map(|regex| (regex, v.clone())) // Клонируем v для использования в кортежах
+                    Regex::new(k).ok().map(|regex| (regex, v.clone()))
                 })
                 .collect(),
             block_text_in_chat: self
