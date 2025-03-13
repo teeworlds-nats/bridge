@@ -45,11 +45,11 @@ impl ServerMessageData {
                 .unwrap_or(default)
                 .to_string()
         }
-        let path_server_name = get(&args, "path_server_name", "server_name");
-        let path_thread_id = get(&args, "path_thread_id", "message_thread_id");
+        let path_server_name = get(args, "path_server_name", "server_name");
+        let path_thread_id = get(args, "path_thread_id", "message_thread_id");
 
-        let server_name = get(&args, &path_server_name, "");
-        let message_thread_id = get(&args, &path_thread_id, "-1");
+        let server_name = get(args, &path_server_name, "");
+        let message_thread_id = get(args, &path_thread_id, "-1");
 
         Self {
             path_server_name,

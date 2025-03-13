@@ -111,17 +111,11 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Resul
             Ok(Ok(())) => {}
             Ok(Err(e)) => {
                 error!("Task failed: {:?}", e);
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "One of the tasks failed",
-                ));
+                return Err(io::Error::other("One of the tasks failed"));
             }
             Err(e) => {
                 error!("Task panicked: {:?}", e);
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "One of the tasks panicked",
-                ));
+                return Err(io::Error::other("One of the tasks panicked"));
             }
         }
     }

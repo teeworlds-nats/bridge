@@ -36,16 +36,3 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:${{ steps.version.outputs.builddate }}
         labels: ${{ steps.meta.outputs.labels }}
-
-  # deploy:
-  #   name: Deploy in Kubernetes
-  #   runs-on: bitnami/kubectl
-  #   steps:
-  #   - name: Deploy
-  #     uses: actions-hub/kubectl@master
-  #     env:
-  #       KUBE_HOST: ${{ secrets.KUBE_HOST }}
-  #       KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
-  #       KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
-  #     with:
-  #       args: get pods
