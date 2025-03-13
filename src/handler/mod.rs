@@ -4,13 +4,12 @@ pub mod model;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::handler::model::{ConfigHandler, HandlerPaths};
-use crate::util::utils::replace_value_single;
+use crate::model::ServerMessageData;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info};
-use serde_yaml::Value;
 use std::process::exit;
 use tokio::io;
 
@@ -55,23 +54,11 @@ async fn handler(
                     break;
                 }
 
-                let server_name = msg
-                    .args
-                    .get("server_name")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string();
-                let message_thread_id = msg
-                    .args
-                    .get("message_thread_id")
-                    .and_then(Value::as_i64)
-                    .unwrap_or(0)
-                    .to_string();
+                let data = ServerMessageData::get_server_name_and_server_name(&msg.args);
 
                 debug!("sent json to {:?}: {}", path.to, json);
                 for write_path in &path.to {
-                    let path =
-                        replace_value_single(write_path, &message_thread_id, &server_name).await;
+                    let path = data.replace_value_single(write_path).await;
 
                     jetstream
                         .publish(path, json.clone().into())

@@ -106,26 +106,3 @@ pub fn err_to_string_and_exit(msg: &str, err: Box<dyn Error>) {
     error!("{}{}", msg, text);
     exit(1);
 }
-
-pub async fn replace_value<T>(input: T, message_thread_id: &str, server_name: &str) -> Vec<String>
-where
-    T: IntoIterator<Item = String>,
-{
-    input
-        .into_iter()
-        .map(|item| {
-            item.replace("{{message_thread_id}}", message_thread_id)
-                .replace("{{server_name}}", server_name)
-        })
-        .collect()
-}
-
-pub async fn replace_value_single(
-    value: &str,
-    message_thread_id: &str,
-    server_name: &str,
-) -> String {
-    value
-        .replace("{{message_thread_id}}", message_thread_id)
-        .replace("{{server_name}}", server_name)
-}

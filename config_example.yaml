@@ -21,7 +21,7 @@ nats:
 
 args:
   server_name: Fng
-  message_thread_id: 1379 # Int only
+  message_thread_id: "1379" # str only
 
 econ:
   host: 127.0.0.1:8303

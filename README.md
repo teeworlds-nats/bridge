@@ -27,7 +27,7 @@ stringData:
       password: amogus
     args:
       server_name: ddnet
-      message_thread_id: <thread-telegram-id>
+      message_thread_id: <thread-telegram-id> "1379" # str only
 ```
 
 bridge-handler-secret.yaml
@@ -48,8 +48,8 @@ stringData:
           - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
           - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
           - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-          - ".* I chat: \\d+:-?\\d+:(.*): (.*)" # ddnetChatRegex
-          - ".* I chat: \\*\\*\\* '(.*?)' (.*)" # ddnetJoinRegex
+          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: (\\d+:-?\\d+:[^:]+): (.*)$" # ddnetChatRegex
+          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
         to:
           - tw.tg.{{message_thread_id}}
       - from: tw.econ.read.*

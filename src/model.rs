@@ -28,6 +28,69 @@ impl RegexData {
     }
 }
 
+pub struct ServerMessageData {
+    #[allow(dead_code)]
+    pub path_server_name: String,
+    #[allow(dead_code)]
+    pub path_thread_id: String,
+    pub server_name: String,
+    pub message_thread_id: String,
+}
+
+impl ServerMessageData {
+    pub fn get_server_name_and_server_name(args: &Value) -> Self {
+        fn get(args: &Value, index: &str, default: &str) -> String {
+            args.get(index)
+                .and_then(Value::as_str)
+                .unwrap_or(default)
+                .to_string()
+        }
+        let path_server_name = get(&args, "path_server_name", "server_name");
+        let path_thread_id = get(&args, "path_thread_id", "message_thread_id");
+
+        let server_name = get(&args, &path_server_name, "");
+        let message_thread_id = get(&args, &path_thread_id, "-1");
+
+        Self {
+            path_server_name,
+            path_thread_id,
+            server_name,
+            message_thread_id,
+        }
+    }
+
+    pub async fn replace_value<T>(&self, input: T) -> Vec<String>
+    where
+        T: IntoIterator<Item = String>,
+    {
+        input
+            .into_iter()
+            .map(|item| {
+                item.replace(
+                    &format!("{{{{{}}}}}", &self.path_thread_id),
+                    &self.message_thread_id,
+                )
+                .replace(
+                    &format!("{{{{{}}}}}", &self.path_server_name),
+                    &self.server_name,
+                )
+            })
+            .collect()
+    }
+
+    pub async fn replace_value_single(&self, value: &str) -> String {
+        value
+            .replace(
+                &format!("{{{{{}}}}}", &self.path_thread_id),
+                &self.message_thread_id,
+            )
+            .replace(
+                &format!("{{{{{}}}}}", &self.path_server_name),
+                &self.server_name,
+            )
+    }
+}
+
 nest! {
     #[derive(Clone, Deserialize)]
     pub struct Config {

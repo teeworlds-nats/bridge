@@ -55,24 +55,6 @@ pub async fn msg_reader(
     nats_path: Vec<String>,
     args: Value,
 ) -> Result<(), PublishError> {
-    let server_name = args
-        .get("server_name")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    let message_thread_id = args
-        .get("message_thread_id")
-        .and_then(Value::as_i64)
-        .unwrap_or(0)
-        .to_string();
-
-    let publish_stream: Vec<String> = nats_path
-        .iter()
-        .map(|x| {
-            x.replace("{{message_thread_id}}", &message_thread_id)
-                .replace("{{server_name}}", server_name)
-        })
-        .collect();
-
     loop {
         let line = match econ.recv_line(true).await {
             Ok(result) => result,
@@ -97,8 +79,8 @@ pub async fn msg_reader(
                 }
             };
 
-            debug!("Sending JSON to {:?}: {}", publish_stream, json);
-            for send_path in publish_stream.clone() {
+            debug!("Sending JSON to {:?}: {}", nats_path, json);
+            for send_path in nats_path.clone() {
                 jetstream
                     .publish(send_path, Bytes::from(json.to_owned()))
                     .await?
