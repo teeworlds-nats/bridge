@@ -2,8 +2,32 @@
 Run [nats](https://github.com/nats-io) through the [helm](https://helm.sh)
 ```
 helm repo add nats https://nats-io.github.io/k8s/helm/charts/
-helm install nats nats/nats --set=config.jetstream.enabled=true --namespace=nats --create-namespace
-helm install nack nats/nack --set jetstream.nats.url=nats://nats:4222 --namespace=nats --create-namespace
+helm repo update
+
+helm upgrade --install nats nats/nats \
+  --set config.jetstream.enabled=true \
+  --set config.jetstream.memoryStore.enabled=true \
+  --set config.cluster.enabled=true --wait \
+  --namespace=nats --create-namespace
+
+helm upgrade --install nack nats/nack \
+  --set jetstream.nats.url=nats://nats:4222 --wait \
+  --namespace=nats --create-namespace
+```
+
+
+Stream
+```
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: tw
+spec:
+  name: tw
+  subjects: ["tw.>"]
+  storage: memory
+  maxAge: 5m
+  maxMsgs: 1000
 ```
 
 ```bash
