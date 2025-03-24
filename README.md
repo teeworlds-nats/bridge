@@ -48,7 +48,7 @@ stringData:
           - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
           - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
           - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: (\\d+:-?\\d+:[^:]+): (.*)$" # ddnetChatRegex
+          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\d+:-?\\d+:([^:]+): (.*)$" # ddnetChatRegex
           - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
         to:
           - tw.tg.{{message_thread_id}}
