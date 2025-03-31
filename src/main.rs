@@ -63,9 +63,7 @@ async fn main() -> Result<(), ConfigError> {
             econ::main(config, nc, js).await.ok();
         }
         Actions::Handler => {
-            handler::main(config.get_env_handler().unwrap(), nc, js)
-                .await
-                .ok();
+            handler::main(config, nc, js).await.ok();
         }
         Actions::HandlerAuto => {
             handler_auto::main(config, nc, js).await.ok();

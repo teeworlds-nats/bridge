@@ -12,12 +12,8 @@ nats:
         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
       to:
         - tw.tg.{{message_thread_id}}
-    - from: tw.econ.read.*
-      regex:
-        - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
-      to:
-        - tw.tg.{{message_thread_id}}
-      template: "{{text_join}}"
+      args:
+        server_name: Test
 
 args:
   server_name: Fng

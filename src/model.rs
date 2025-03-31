@@ -11,7 +11,7 @@ use std::option::Option;
 use std::process::exit;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-
+use tw_econ::Econ;
 // type CowStr<'a> = Cow<'a, str>;
 
 pub struct RegexData {
@@ -97,7 +97,7 @@ nest! {
         logging: Option<String>,
         pub nats:
             #[derive(Clone, Deserialize)]
-            pub struct EnvNats {
+            pub struct NatsConfig {
                 pub server: String,
                 pub user: Option<String>,
                 pub password: Option<String>,
@@ -113,8 +113,7 @@ nest! {
                         pub from: Option<String>,
                         pub regex: Option<Vec<String>>,
                         pub to: Option<Vec<String>>,
-                        pub template: Option<String>,
-                        pub custom: Option<bool>,
+                        pub args: Option<Value>,
                     }>>,
             },
 
@@ -123,23 +122,13 @@ nest! {
         pub check_status_econ_sec: Option<u64>,
         pub econ: Option<
             #[derive(Clone, Deserialize)]
-            pub struct EnvEcon {
-                pub host: Option<String>,
+            pub struct EconConfig {
+                pub host: String,
                 pub password: Option<String>,
                 pub auth_message: Option<String>,
             }>,
 
-        pub args: Value,
-
-        // handler
-        pub text: Option<String>,
-        pub text_leave: Option<String>,
-        pub text_join: Option<String>,
-        pub text_edit_nickname: Option<String>,
-        pub nickname_regex: Option<Vec<(String, String)>>,
-        pub block_text_in_nickname: Option<Vec<(String, String)>>,
-        pub chat_regex: Option<Vec<(String, String)>>,
-        pub block_text_in_chat: Option<Vec<(String, String)>>,
+        pub args: Option<Value>,
     }
 }
 
@@ -169,16 +158,38 @@ impl Config {
         let Some(econ) = self.econ.clone() else {
             exit(-1)
         };
-        if econ.host.is_none() {
-            error!("econ.host must be set");
-            exit(1);
-        }
         econ.host
-            .unwrap()
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()
             .unwrap()
+    }
+
+    pub async fn econ_connect(&self) -> std::io::Result<Econ> {
+        let mut econ = Econ::new();
+        if self.econ.is_none() {
+            error!("econ must be set, see config_example.yaml");
+            exit(1);
+        }
+        let econ_env = self.econ.clone().unwrap();
+
+        if econ_env.password.is_none() {
+            error!("econ.password must be set");
+            exit(1);
+        }
+
+        econ.connect(self.get_econ_addr()).await?;
+        if let Some(auth_message) = econ_env.auth_message {
+            econ.set_auth_message(auth_message)
+        }
+
+        let authed = econ.try_auth(econ_env.password.unwrap()).await?;
+        if !authed {
+            error!("Econ client is not authorized");
+            exit(1);
+        }
+
+        Ok(econ)
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {

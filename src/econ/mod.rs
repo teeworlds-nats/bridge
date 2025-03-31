@@ -3,23 +3,26 @@ pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
 use crate::model::{Config, ServerMessageData};
-use crate::util::utils::{econ_connect, err_to_string_and_exit};
+use crate::util::utils::err_to_string_and_exit;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use log::info;
+use serde_yaml::Value;
 use tokio::sync::mpsc;
 
 pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel(64);
-    let econ_reader = econ_connect(config.clone())
+    let econ_reader = config
+        .econ_connect()
         .await
         .expect("econ_reader failed connect");
-    let mut econ_write = econ_connect(config.clone())
+    let mut econ_write = config
+        .econ_connect()
         .await
         .expect("econ_write failed connect");
     info!("econ_reader and econ_write connected");
 
-    let args = config.args;
+    let args = config.args.unwrap_or_else(|| Value::default());
     let data = ServerMessageData::get_server_name_and_server_name(&args);
 
     let queue_group = format!("econ.reader.{}", &data.message_thread_id);

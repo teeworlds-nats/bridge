@@ -51,7 +51,7 @@ stringData:
       password: amogus
     args:
       server_name: ddnet
-      message_thread_id: <thread-telegram-id> "1379" # str only
+      message_thread_id: "<thread-telegram-id>"
 ```
 
 bridge-handler-secret.yaml
@@ -67,21 +67,17 @@ stringData:
     nats:
       server: nats.nats:4222
     paths:
-      - from: tw.econ.read.*
-        regex:
-          - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
-          - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
-          - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\d+:-?\\d+:([^:]+): (.*)$" # ddnetChatRegex
-          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
-        to:
-          - tw.tg.{{message_thread_id}}
-      - from: tw.econ.read.*
-        regex:
-          - "\\[game]: team_join player='\\d+:(.*)' team=0" # teeworldsJoinRegex
-        to:
-          - tw.tg.{{message_thread_id}}
-        template: "{{text_join}}"
+     - from: tw.econ.read.*
+       regex:
+         - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
+         - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
+         - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
+         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: ([^:]+): (.*)$" # ddnetChatRegex
+         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
+       to:
+         - tw.tg.{{message_thread_id}}
+       args:
+         server_name: Test
 ```
 
 ddnet-econ-deployment.yaml
