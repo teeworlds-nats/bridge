@@ -7,7 +7,6 @@ use crate::util::utils::err_to_string_and_exit;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use log::info;
-use serde_yaml::Value;
 use tokio::sync::mpsc;
 
 pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
@@ -22,7 +21,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
         .expect("econ_write failed connect");
     info!("econ_reader and econ_write connected");
 
-    let args = config.args.unwrap_or_else(|| Value::default());
+    let args = config.args.unwrap_or_default();
     let data = ServerMessageData::get_server_name_and_server_name(&args);
 
     let queue_group = format!("econ.reader.{}", &data.message_thread_id);

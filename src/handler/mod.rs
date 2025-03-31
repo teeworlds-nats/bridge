@@ -44,7 +44,7 @@ async fn handler(
         .iter()
         .filter_map(|r| Regex::new(r).ok())
         .collect();
-    let args = path.args.unwrap_or_else(|| Value::default());
+    let args = path.args.unwrap_or_default();
 
     let mut subscriber = nats
         .queue_subscribe(from.clone(), format!("handler_{}", task_count))
