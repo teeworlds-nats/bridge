@@ -34,5 +34,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:${{ steps.version.outputs.builddate }}
+        tags: |
+          ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:${{ steps.version.outputs.builddate }}
+          ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:latest
         labels: ${{ steps.meta.outputs.labels }}

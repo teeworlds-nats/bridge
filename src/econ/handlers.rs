@@ -1,4 +1,5 @@
 use crate::econ::model::MsgBridge;
+use crate::handler::model::MsgHandler;
 use async_nats::jetstream::context::PublishError;
 use async_nats::jetstream::Context;
 use async_nats::Client;
@@ -35,15 +36,24 @@ pub async fn process_messages(
             "Message received from {}, length {}",
             message.subject, message.length
         );
-        let msg = match std::str::from_utf8(&message.payload) {
-            Ok(s) => s.to_string(),
+        let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
+            Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
+                error!("Error deserializing JSON: {}", err);
+                exit(1);
+            }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
                 continue;
             }
         };
-
-        if let Err(err) = tx.send(msg).await {
+        let result = msg
+            .value
+            .iter()
+            .filter_map(|x| x.as_ref())
+            .map(|s| s.as_str())
+            .collect::<Vec<&str>>()
+            .join(" ");
+        if let Err(err) = tx.send(result).await {
             error!("tx.send error: {}", err);
         }
     }
