@@ -1,4 +1,4 @@
-use crate::util::errors::ConfigError;
+use crate::errors::ConfigError;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, error, LevelFilter};
@@ -9,6 +9,7 @@ use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::option::Option;
 use std::process::exit;
+use teloxide::Bot as TBot;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tw_econ::Econ;
@@ -118,7 +119,6 @@ nest! {
             },
 
         // econ
-
         pub check_status_econ_sec: Option<u64>,
         pub econ: Option<
             #[derive(Clone, Deserialize)]
@@ -129,6 +129,14 @@ nest! {
             }>,
 
         pub args: Option<Value>,
+
+        pub bot: Option<
+            #[derive(Clone, Deserialize)]
+            pub struct Bot {
+                pub token: String,
+                pub chat_id: i64,
+            }>,
+
     }
 }
 
@@ -141,8 +149,8 @@ impl Config {
             .read_to_string(&mut contents)
             .await?;
 
-        let env: Config = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
-        Ok(env)
+        let config: Self = serde_yaml::from_str(&contents).map_err(ConfigError::from)?;
+        Ok(config)
     }
 
     pub fn set_logging(&self) {
@@ -190,6 +198,11 @@ impl Config {
         }
 
         Ok(econ)
+    }
+
+    pub fn connect_bot(&self) -> TBot {
+        let bot = self.bot.clone().unwrap();
+        TBot::new(bot.token)
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {

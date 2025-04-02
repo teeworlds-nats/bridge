@@ -1,4 +1,3 @@
-use serde_yaml;
 use std::fmt;
 
 #[derive(Debug)]

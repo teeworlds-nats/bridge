@@ -3,8 +3,8 @@ pub mod model;
 mod regex;
 
 use crate::econ::model::MsgBridge;
-use crate::handler_auto::handlers::caps_handler;
-use crate::handler_auto::regex::DEFAULT_REGEX;
+use crate::handlers::handler_auto::handlers::caps_handler;
+use crate::handlers::handler_auto::regex::DEFAULT_REGEX;
 use crate::model::{Config, RegexData};
 use async_nats::jetstream::Context;
 use async_nats::Client;

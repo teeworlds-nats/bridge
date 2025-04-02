@@ -25,3 +25,4 @@ signal-hook = "0.3.17"
 bytes = "1.10.1"
 nestify = "0.3.3"
 chrono = "0.4.40"
+teloxide = { version = "0.14.1", features = ["macros"] }

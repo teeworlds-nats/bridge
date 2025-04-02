@@ -2,7 +2,7 @@ mod handlers;
 pub mod model;
 
 use crate::econ::model::MsgBridge;
-use crate::handler::handlers::chat_handler;
+use crate::handlers::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths, ServerMessageData};
 use async_nats::jetstream::Context;
 use async_nats::Client;
@@ -81,7 +81,7 @@ async fn handler(
                 if json.is_empty() {
                     break;
                 }
-                
+
                 let data = ServerMessageData::get_server_name_and_server_name(&new_args);
 
                 debug!("sent json to {:?}: {}", to, json);

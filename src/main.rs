@@ -1,23 +1,25 @@
 use crate::model::Config;
-use crate::util::errors::ConfigError;
 use clap::{Parser, Subcommand};
+use errors::ConfigError;
+use log::info;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use teloxide::prelude::Requester;
 use tokio::time::sleep;
 
 // Actions
 mod econ;
-mod handler;
-#[path = "./handler-auto/mod.rs"]
-mod handler_auto;
+mod handlers;
 
 // Other
+mod bots;
+mod errors;
 mod model;
-mod util;
+mod utils;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -32,6 +34,8 @@ enum Actions {
     Econ,
     Handler,
     HandlerAuto,
+    BotReader,
+    BotWriter,
 }
 
 #[tokio::main]
@@ -63,10 +67,21 @@ async fn main() -> Result<(), ConfigError> {
             econ::main(config, nc, js).await.ok();
         }
         Actions::Handler => {
-            handler::main(config, nc, js).await.ok();
+            handlers::handler::main(config, nc, js).await.ok();
         }
         Actions::HandlerAuto => {
-            handler_auto::main(config, nc, js).await.ok();
+            handlers::handler_auto::main(config, nc, js).await.ok();
+        }
+        Actions::BotReader => {
+            let bot = config.connect_bot();
+            let me = bot.get_me().await.expect("Failed to execute bot.get_me");
+
+            info!("bot {} has started", me.username());
+            bots::reader::main(config, nc, js, bot).await.ok();
+        }
+        Actions::BotWriter => {
+            // handlers::handler_auto::main(config, nc, js).await.ok();
+            panic!("NOT IMPELENTED")
         }
     }
 

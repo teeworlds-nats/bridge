@@ -1,4 +1,4 @@
-use crate::handler::model::MsgHandler;
+use crate::handlers::handler::model::MsgHandler;
 use log::error;
 use regex::Captures;
 use serde_json::Value as JsonValue;

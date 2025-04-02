@@ -1,5 +1,5 @@
 use crate::econ::model::MsgBridge;
-use crate::handler::model::MsgHandler;
+use crate::handlers::handler::model::MsgHandler;
 use async_nats::jetstream::context::PublishError;
 use async_nats::jetstream::Context;
 use async_nats::Client;

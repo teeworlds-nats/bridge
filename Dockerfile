@@ -1,11 +1,16 @@
-FROM rust:alpine AS rust-build
+FROM rust:slim-bookworm AS rust-build
 
-ADD . ./app_build
+WORKDIR /app_build
 
-RUN apk --update add git build-base && \
-    cd /app_build ; cargo build --release
+COPY . .
 
-FROM alpine:3.20
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install pkg-config libssl-dev libssl3 ca-certificates -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    cargo build --release
+
+FROM debian:bookworm-slim
 
 WORKDIR /tw
 

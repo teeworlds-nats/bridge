@@ -37,4 +37,5 @@ jobs:
         tags: |
           ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:${{ steps.version.outputs.builddate }}
           ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:latest
+          ${{ secrets.DOCKER_REGISTRY }}/common/econ-to-nats:dev
         labels: ${{ steps.meta.outputs.labels }}

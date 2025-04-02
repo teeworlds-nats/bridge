@@ -3,7 +3,7 @@ pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
 use crate::model::{Config, ServerMessageData};
-use crate::util::utils::err_to_string_and_exit;
+use crate::utils::err_to_string_and_exit;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use log::info;

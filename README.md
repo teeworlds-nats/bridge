@@ -161,6 +161,3 @@ k apply -f bridge-handler-secret.yaml
 k apply -f ddnet-econ-deployment.yaml 
 k apply -f bridge-handler-deployment.yaml
 ```
-
-# Additionally
-[bot](https://github.com/teeworlds-nats/nats-to-telegram) for sending messages from [nats](https://github.com/nats-io) to [telegram](https://telegram.org)

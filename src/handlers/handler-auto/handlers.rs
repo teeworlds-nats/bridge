@@ -1,5 +1,5 @@
 use crate::econ::model::MsgBridge;
-use crate::handler_auto::model::{Data, MsgHandlerAuto};
+use crate::handlers::handler_auto::model::{Data, MsgHandlerAuto};
 use chrono::NaiveDateTime;
 use log::error;
 use regex::Captures;
