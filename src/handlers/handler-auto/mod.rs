@@ -55,7 +55,7 @@ async fn handler(
             }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
-                continue
+                continue;
             }
         };
         if let Some(caps) = regex.regex.captures(&msg.text) {
@@ -64,7 +64,7 @@ async fn handler(
                 Ok(str) => str,
                 Err(err) => {
                     error!("Json Serialize Error: {}", err);
-                    continue
+                    continue;
                 }
             };
             if data.data.text.is_empty() {

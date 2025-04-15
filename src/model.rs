@@ -177,7 +177,7 @@ impl Config {
             panic!("econ must be set, see config_example.yaml");
         }
         let conf_econ = self.econ.clone().unwrap();
-        
+
         econ.connect(conf_econ.get_econ_addr()).await?;
         if let Some(auth_message) = conf_econ.auth_message {
             econ.set_auth_message(auth_message)
