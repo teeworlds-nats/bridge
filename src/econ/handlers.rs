@@ -99,13 +99,15 @@ pub async fn msg_reader(
     panic!("msg_reader dead");
 }
 
-pub async fn check_status(tx: Sender<String>, check_status_econ_sleep: Option<u64>) {
-    let check_status_econ_sleep = check_status_econ_sleep.unwrap_or(15);
+pub async fn check_status(tx: Sender<String>, check_message: String, check_status_econ_sec: u64) {
     loop {
-        debug!("check status econ");
-        tx.send("".to_string())
+        debug!(
+            "check status econ, msg: \"{}\" sleep: {}",
+            check_message, check_status_econ_sec
+        );
+        tx.send(check_message.clone())
             .await
             .expect("tx.send error, check_status failed");
-        sleep(Duration::from_secs(check_status_econ_sleep)).await;
+        sleep(Duration::from_secs(check_status_econ_sec)).await;
     }
 }

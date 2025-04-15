@@ -20,14 +20,14 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
         .expect("econ_write failed connect");
     info!("econ_reader and econ_write connected");
 
-    let args = config.args.unwrap_or_default();
+    let conf_nats = config.nats.clone();
+    let args = config.args.clone().unwrap_or_default();
     let data = ServerMessageData::get_server_name_and_server_name(&args);
 
     let queue_group = format!("econ.reader.{}", &data.message_thread_id);
     let write_path: Vec<String> = data
         .replace_value(
-            config
-                .nats
+            conf_nats
                 .to
                 .unwrap_or(vec!["tw.econ.read.{{message_thread_id}}".to_string()]),
         )
@@ -35,7 +35,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
     tokio::spawn(msg_reader(econ_reader, jetstream, write_path, args));
 
     let read_path: Vec<String> = data
-        .replace_value(config.nats.from.unwrap_or(vec![
+        .replace_value(conf_nats.from.unwrap_or(vec![
             "tw.econ.write.{{message_thread_id}}".to_string(),
             "tw.econ.moderator".to_string(),
         ]))
@@ -48,16 +48,50 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
             nats.clone(),
         ));
     }
-    tokio::spawn(check_status(tx.clone(), config.check_status_econ_sec));
-
+    let conf_econ = config.econ.unwrap();
+    tokio::spawn(check_status(
+        tx.clone(),
+        conf_econ.check_message.clone(),
+        conf_econ.check_status_econ_sec,
+    ));
     while let Some(message) = rx.recv().await {
-        match econ_write.send_line(message).await {
-            Ok(_) => {}
-            Err(err) => {
-                error!("Error send_line to econ: {}", Box::new(err));
-                continue;
-            } // TODO: add reconnect #47
-        };
+        let mut attempts = 0;
+
+        loop {
+            match econ_write.send_line(&message).await {
+                Ok(_) => break,
+                Err(err) => {
+                    error!("Error send_line to econ: {}", err);
+
+                    info!(
+                        "Trying to reconnect to the server: {}/{}",
+                        attempts, conf_econ.reconnect.max_attempts
+                    );
+                    if attempts < conf_econ.reconnect.max_attempts {
+                        match conf_econ.econ_connect().await {
+                            Ok(result) => {
+                                econ_write = result;
+                                break;
+                            }
+                            Err(connect_err) => {
+                                error!("Error econ_connect: {}", connect_err);
+                                attempts += 1;
+                                tokio::time::sleep(std::time::Duration::from_secs(
+                                    conf_econ.reconnect.sleep,
+                                ))
+                                .await;
+                            }
+                        }
+                    } else {
+                        info!("Max reconnect attempts reached. Giving up.");
+                        if let Err(send_err) = tx.send(message).await {
+                            error!("Failed to send message back: {}", send_err);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }

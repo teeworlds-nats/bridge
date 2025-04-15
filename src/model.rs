@@ -1,4 +1,5 @@
 use crate::errors::ConfigError;
+use anyhow::anyhow;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, LevelFilter};
@@ -118,13 +119,25 @@ nest! {
             },
 
         // econ
-        pub check_status_econ_sec: Option<u64>,
         pub econ: Option<
             #[derive(Clone, Deserialize)]
             pub struct EconConfig {
                 pub host: String,
                 pub password: String,
                 pub auth_message: Option<String>,
+                #[serde(default = "default_check_status_econ_sec")]
+                pub check_status_econ_sec: u64,
+                #[serde(default = "default_check_message")]
+                pub check_message: String,
+                #[serde(default = "default_reconnect")]
+                pub reconnect:
+                    #[derive(Clone, Deserialize)]
+                    pub struct ReconnectConfig {
+                        #[serde(default = "default_max_attempts")]
+                        pub max_attempts: i64,
+                        #[serde(default = "default_sleep")]
+                        pub sleep: u64,
+                    },
             }>,
 
         pub args: Option<Value>,
@@ -139,6 +152,29 @@ nest! {
     }
 }
 
+fn default_check_status_econ_sec() -> u64 {
+    5
+}
+
+fn default_check_message() -> String {
+    "".to_string()
+}
+
+fn default_max_attempts() -> i64 {
+    10
+}
+
+fn default_sleep() -> u64 {
+    5
+}
+
+fn default_reconnect() -> ReconnectConfig {
+    ReconnectConfig {
+        max_attempts: default_max_attempts(),
+        sleep: default_sleep(),
+    }
+}
+
 impl EconConfig {
     pub fn get_econ_addr(&self) -> SocketAddr {
         self.host
@@ -146,6 +182,28 @@ impl EconConfig {
             .expect("Error create econ address")
             .next()
             .unwrap()
+    }
+
+    pub async fn econ_connect(&self) -> anyhow::Result<Econ> {
+        let mut econ = Econ::new();
+
+        match econ.connect(self.get_econ_addr()).await {
+            Ok(_) => {}
+            Err(err) => return Err(anyhow!("econ.connect, err: {}", err)),
+        };
+        if let Some(auth_message) = &self.auth_message {
+            econ.set_auth_message(auth_message)
+        }
+
+        let authed = match econ.try_auth(&self.password).await {
+            Ok(result) => result,
+            Err(err) => return Err(anyhow!("econ.try_auth, err: {}", err)),
+        };
+        if !authed {
+            return Err(anyhow!("Econ client is not authorized"));
+        }
+
+        Ok(econ)
     }
 }
 
@@ -171,24 +229,11 @@ impl Config {
         builder.init();
     }
 
-    pub async fn econ_connect(&self) -> std::io::Result<Econ> {
-        let mut econ = Econ::new();
+    pub async fn econ_connect(&self) -> anyhow::Result<Econ> {
         if self.econ.is_none() {
-            panic!("econ must be set, see config_example.yaml");
+            return Err(anyhow!("econ must be set, see config_example.yaml"));
         }
-        let conf_econ = self.econ.clone().unwrap();
-
-        econ.connect(conf_econ.get_econ_addr()).await?;
-        if let Some(auth_message) = conf_econ.auth_message {
-            econ.set_auth_message(auth_message)
-        }
-
-        let authed = econ.try_auth(conf_econ.password).await?;
-        if !authed {
-            panic!("Econ client is not authorized");
-        }
-
-        Ok(econ)
+        self.econ.clone().unwrap().econ_connect().await
     }
 
     pub fn connect_bot(&self) -> TBot {
