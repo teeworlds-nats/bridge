@@ -7,7 +7,6 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 use log::{debug, error, info};
 use serde_yaml::Value;
-use std::process::exit;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
@@ -38,8 +37,7 @@ pub async fn process_messages(
         );
         let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                error!("Error deserializing JSON: {}", err);
-                exit(1);
+                panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
@@ -98,8 +96,7 @@ pub async fn msg_reader(
             }
         }
     }
-    debug!("msg_reader dead");
-    exit(-1);
+    panic!("msg_reader dead");
 }
 
 pub async fn check_status(tx: Sender<String>, check_status_econ_sleep: Option<u64>) {

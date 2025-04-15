@@ -6,7 +6,6 @@ use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info};
-use std::process::exit;
 use teloxide::prelude::*;
 use teloxide::types::ThreadId;
 
@@ -33,8 +32,7 @@ pub async fn main(
     {
         Ok(subscriber) => subscriber,
         Err(err) => {
-            error!("Failed to subscribe to {}: {}", subscriber_str, err);
-            exit(0);
+            panic!("Failed to subscribe to {}: {}", subscriber_str, err);
         }
     };
 
@@ -46,8 +44,7 @@ pub async fn main(
         );
         let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                error!("Error deserializing JSON: {}", err);
-                exit(1);
+                panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);

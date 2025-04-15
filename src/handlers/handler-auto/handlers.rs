@@ -1,16 +1,13 @@
 use crate::econ::model::MsgBridge;
 use crate::handlers::handler_auto::model::{Data, MsgHandlerAuto};
 use chrono::NaiveDateTime;
-use log::error;
 use regex::Captures;
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
-use std::process::exit;
 
 async fn get_data(data: Data, yaml_args: YamlValue) -> MsgHandlerAuto {
     let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
-        error!("Transfer YamlValue to JsonValue Failed: {}", err);
-        exit(1)
+        panic!("Transfer YamlValue to JsonValue Failed: {}", err);
     });
     MsgHandlerAuto { data, args }
 }

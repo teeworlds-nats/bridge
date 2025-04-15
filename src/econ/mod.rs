@@ -3,10 +3,9 @@ pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
 use crate::model::{Config, ServerMessageData};
-use crate::utils::err_to_string_and_exit;
 use async_nats::jetstream::Context;
 use async_nats::Client;
-use log::info;
+use log::{error, info};
 use tokio::sync::mpsc;
 
 pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
@@ -54,7 +53,10 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
     while let Some(message) = rx.recv().await {
         match econ_write.send_line(message).await {
             Ok(_) => {}
-            Err(err) => err_to_string_and_exit("Error send_line to econ: ", Box::new(err)),
+            Err(err) => {
+                error!("Error send_line to econ: {}", Box::new(err));
+                continue;
+            } // TODO: add reconnect #47
         };
     }
     Ok(())

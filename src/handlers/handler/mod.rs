@@ -11,7 +11,6 @@ use futures::StreamExt;
 use log::{debug, error, info};
 use regex::Regex;
 use serde_yaml::Value;
-use std::process::exit;
 use tokio::io;
 
 fn merge_yaml_values(original: &Value, new: &Value) -> Value {
@@ -64,12 +63,11 @@ async fn handler(
         );
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                error!("Error deserializing JSON: {}", err);
-                exit(1);
+                panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
-                exit(1);
+                continue;
             }
         };
         for regex in &re {

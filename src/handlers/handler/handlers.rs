@@ -1,22 +1,18 @@
 use crate::handlers::handler::model::MsgHandler;
-use log::error;
 use regex::Captures;
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
-use std::process::exit;
 
 async fn get_json(value: Vec<Option<String>>, text: String, yaml_args: &YamlValue) -> String {
     let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
-        error!("Transfer YamlValue to JsonValue Failed: {}", err);
-        exit(1)
+        panic!("Transfer YamlValue to JsonValue Failed: {}", err);
     });
     let send_msg = MsgHandler { value, text, args };
 
     match serde_json::to_string_pretty(&send_msg) {
         Ok(str) => str,
         Err(err) => {
-            error!("Json Serialize Error: {}", err);
-            exit(1);
+            panic!("Json Serialize Error: {}", err);
         }
     }
 }

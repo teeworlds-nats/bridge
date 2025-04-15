@@ -11,7 +11,6 @@ use async_nats::Client;
 use futures_util::future::join_all;
 use futures_util::StreamExt;
 use log::{debug, error, info};
-use std::process::exit;
 use tokio::io;
 
 async fn handler(
@@ -31,8 +30,7 @@ async fn handler(
     ]);
 
     if to.len() > 1 || from.len() > 1 {
-        error!("count nats.from or nats.to > 1");
-        exit(1)
+        panic!("count nats.from or nats.to > 1");
     }
 
     let from = from.first().unwrap().to_owned();
@@ -53,12 +51,11 @@ async fn handler(
         );
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                error!("Error deserializing JSON: {}", err);
-                exit(1);
+                panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
                 error!("Error converting bytes to string: {}", err);
-                exit(1);
+                continue
             }
         };
         if let Some(caps) = regex.regex.captures(&msg.text) {
@@ -67,7 +64,7 @@ async fn handler(
                 Ok(str) => str,
                 Err(err) => {
                     error!("Json Serialize Error: {}", err);
-                    exit(1);
+                    continue
                 }
             };
             if data.data.text.is_empty() {

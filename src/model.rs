@@ -1,14 +1,13 @@
 use crate::errors::ConfigError;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
-use log::{debug, error, LevelFilter};
+use log::{debug, LevelFilter};
 use nestify::nest;
 use regex::Regex;
 use serde_derive::Deserialize;
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::option::Option;
-use std::process::exit;
 use teloxide::Bot as TBot;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -124,7 +123,7 @@ nest! {
             #[derive(Clone, Deserialize)]
             pub struct EconConfig {
                 pub host: String,
-                pub password: Option<String>,
+                pub password: String,
                 pub auth_message: Option<String>,
             }>,
 
@@ -137,6 +136,16 @@ nest! {
                 pub chat_id: i64,
             }>,
 
+    }
+}
+
+impl EconConfig {
+    pub fn get_econ_addr(&self) -> SocketAddr {
+        self.host
+            .to_socket_addrs()
+            .expect("Error create econ address")
+            .next()
+            .unwrap()
     }
 }
 
@@ -162,39 +171,21 @@ impl Config {
         builder.init();
     }
 
-    pub fn get_econ_addr(&self) -> SocketAddr {
-        let Some(econ) = self.econ.clone() else {
-            exit(-1)
-        };
-        econ.host
-            .to_socket_addrs()
-            .expect("Error create econ address")
-            .next()
-            .unwrap()
-    }
-
     pub async fn econ_connect(&self) -> std::io::Result<Econ> {
         let mut econ = Econ::new();
         if self.econ.is_none() {
-            error!("econ must be set, see config_example.yaml");
-            exit(1);
+            panic!("econ must be set, see config_example.yaml");
         }
-        let econ_env = self.econ.clone().unwrap();
-
-        if econ_env.password.is_none() {
-            error!("econ.password must be set");
-            exit(1);
-        }
-
-        econ.connect(self.get_econ_addr()).await?;
-        if let Some(auth_message) = econ_env.auth_message {
+        let conf_econ = self.econ.clone().unwrap();
+        
+        econ.connect(conf_econ.get_econ_addr()).await?;
+        if let Some(auth_message) = conf_econ.auth_message {
             econ.set_auth_message(auth_message)
         }
 
-        let authed = econ.try_auth(econ_env.password.unwrap()).await?;
+        let authed = econ.try_auth(conf_econ.password).await?;
         if !authed {
-            error!("Econ client is not authorized");
-            exit(1);
+            panic!("Econ client is not authorized");
         }
 
         Ok(econ)
