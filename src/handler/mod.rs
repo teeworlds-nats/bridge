@@ -60,14 +60,13 @@ async fn handler(
                 let new_args = merge_yaml_values(&msg.args, &args);
                 let json = chat_handler(&caps, &new_args).await;
 
-                debug!("send {} by paths:", json);
-                for write_path in &to {
-                    let path = get_and_format(write_path, &new_args, Some(&caps));
-                    debug!("- {}", path);
-
-                    jetstream
-                        .publish(path.to_string(), json.clone().into())
-                        .await?;
+                let write_paths: Vec<String> = to
+                    .iter()
+                    .map(|x| get_and_format(x, &new_args, Some(&caps)).to_string())
+                    .collect();
+                debug!("send {} to {:?}:", json, write_paths);
+                for path in write_paths {
+                    jetstream.publish(path, json.clone().into()).await?;
                 }
             }
         }
