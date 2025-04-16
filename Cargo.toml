@@ -27,3 +27,13 @@ nestify = "0.3.3"
 chrono = "0.4.40"
 teloxide = { version = "0.15.0", features = ["macros"] }
 anyhow = "1.0.98"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+panic = "abort"
