@@ -1,14 +1,12 @@
 use crate::model::Config;
 use clap::{Parser, Subcommand};
 use errors::ConfigError;
-use log::info;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use teloxide::prelude::Requester;
 use tokio::time::sleep;
 
 // Actions
@@ -72,14 +70,10 @@ async fn main() -> Result<(), ConfigError> {
             handlers::handler_auto::main(config, nc, js).await.ok();
         }
         Actions::BotReader => {
-            let bot = config.connect_bot();
-            let me = bot.get_me().await.expect("Failed to execute bot.get_me");
-
-            info!("bot {} has started", me.username());
-            bots::reader::main(config, nc, js, bot).await.ok();
+            bots::reader::main(config, nc, js).await.ok();
         }
         Actions::BotWriter => {
-            // handlers::handler_auto::main(config, nc, js).await.ok();
+            // bots::writer::main(config, nc, js).await.ok();
             panic!("NOT IMPELENTED")
         }
     }

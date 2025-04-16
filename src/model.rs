@@ -2,13 +2,14 @@ use crate::errors::ConfigError;
 use anyhow::anyhow;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
-use log::{debug, LevelFilter};
+use log::{debug, info, LevelFilter};
 use nestify::nest;
 use regex::Regex;
 use serde_derive::Deserialize;
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::option::Option;
+use teloxide::prelude::Requester;
 use teloxide::Bot as TBot;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -144,7 +145,7 @@ nest! {
 
         pub bot: Option<
             #[derive(Clone, Deserialize)]
-            pub struct Bot {
+            pub struct BotConfig {
                 pub token: String,
                 pub chat_id: i64,
             }>,
@@ -207,6 +208,17 @@ impl EconConfig {
     }
 }
 
+impl BotConfig {
+    pub async fn get_bot(self) -> TBot {
+        let bot = TBot::new(self.token);
+        let me = bot.get_me().await.expect("Failed to execute bot.get_me");
+
+        info!("bot {} has started", me.username());
+
+        bot
+    }
+}
+
 impl Config {
     pub async fn get_yaml() -> Result<Self, ConfigError> {
         let mut contents = String::new();
@@ -234,11 +246,6 @@ impl Config {
             return Err(anyhow!("econ must be set, see config_example.yaml"));
         }
         self.econ.clone().unwrap().econ_connect().await
-    }
-
-    pub fn connect_bot(&self) -> TBot {
-        let bot = self.bot.clone().unwrap();
-        TBot::new(bot.token)
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {

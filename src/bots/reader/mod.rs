@@ -13,7 +13,6 @@ pub async fn main(
     config: Config,
     nats: Client,
     _jetstream: Context,
-    bot: Bot,
 ) -> Result<(), async_nats::Error> {
     let subscriber_str = config
         .nats
@@ -25,6 +24,7 @@ pub async fn main(
     let queue_group = "tw_tg_bot".to_string();
     let config_bot = config.bot.clone().unwrap();
     let chat_id = ChatId(config_bot.chat_id);
+    let bot = config_bot.get_bot().await;
 
     let mut subscriber = match nats
         .queue_subscribe(subscriber_str.clone(), queue_group)

@@ -1,7 +1,7 @@
 mod model;
 
-use crate::model::Config;
 use crate::bots::writer::model::TextBuilder;
+use crate::model::Config;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use std::sync::Arc;
@@ -10,7 +10,6 @@ use teloxide::RequestError;
 
 // TODO:
 async fn handle_message(
-    bot: Bot,
     msg: Message,
     jetstream: Arc<Context>,
     send_paths: Vec<String>,
@@ -37,11 +36,11 @@ async fn handle_message(
     Ok(())
 }
 
+
 pub async fn main(
     config: Config,
     nats: Client,
     jetstream: Context,
-    bot: Bot,
 ) -> Result<(), async_nats::Error> {
     let send_paths = Arc::new(
         config
@@ -49,9 +48,13 @@ pub async fn main(
             .to
             .unwrap_or(vec!["tw.econ.write.{{message_thread_id}}".to_string()]),
     );
+    let config_bot = config.bot.clone().unwrap();
+    let bot = config_bot.get_bot().await;
 
     let jetstream = Arc::new(jetstream);
-
+    let config_bot = config.bot.clone().unwrap();
+    let bot = config_bot.get_bot().await;
+    
     teloxide::repl(bot, |bot: Bot, msg: Message| async move {
         Ok(())
     })
