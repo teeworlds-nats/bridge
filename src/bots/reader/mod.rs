@@ -60,10 +60,8 @@ pub async fn main(
         let message_text = get(&new_args, "message_text", "{0}: {1}");
 
         let text = get_and_format(&message_text, &new_args, &msg.value);
-        println!("{}, {}", message_text, text);
 
         debug!("sent message to {}({}), {}", chat_id, thread_id, text);
-
         bot.send_message(chat_id, text)
             .message_thread_id(ThreadId(teloxide::types::MessageId(thread_id)))
             .await?;
