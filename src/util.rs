@@ -29,18 +29,14 @@ pub fn merge_yaml_values(original: &Value, new: &Value) -> Value {
     }
 }
 
-pub fn get_and_format<'h>(
-    string: &'h str,
-    args: &Value,
-    list_values: &Vec<String>,
-) -> Cow<'h, str> {
+pub fn get_and_format<'h>(string: &'h str, args: &Value, list_values: &[String]) -> Cow<'h, str> {
     let mut new_args = args.clone();
 
     let path_server_name = get(args, "path_server_name", "server_name");
     let path_thread_id = get(args, "path_thread_id", "message_thread_id");
 
-    new_args["server_name"] = Value::String(get(&args, &path_server_name, ""));
-    new_args["message_thread_id"] = Value::String(get(&args, &path_thread_id, "-1"));
+    new_args["server_name"] = Value::String(get(args, &path_server_name, ""));
+    new_args["message_thread_id"] = Value::String(get(args, &path_thread_id, "-1"));
 
     RE.replace_all(string, |caps: &Captures| {
         let key = &caps[1];
@@ -50,12 +46,10 @@ pub fn get_and_format<'h>(
                 .get(index)
                 .unwrap_or(&"".to_string())
                 .to_string()
+        } else if let Some(value) = new_args.get(Value::String(key.to_string())) {
+            value.as_str().unwrap_or("").to_string()
         } else {
-            if let Some(value) = new_args.get(&Value::String(key.to_string())) {
-                value.as_str().unwrap_or("").to_string()
-            } else {
-                "".to_string()
-            }
+            "".to_string()
         }
     })
 }
@@ -74,5 +68,5 @@ pub fn get_and_format_caps<'h>(
         })
         .unwrap_or_default();
 
-    get_and_format(string, &args, &list_values)
+    get_and_format(string, args, &list_values)
 }
