@@ -29,16 +29,11 @@ pub fn merge_yaml_values(original: &Value, new: &Value) -> Value {
     }
 }
 
-pub fn get_and_format<'h>(string: &'h str, args: &Value, caps: Option<&Captures>) -> Cow<'h, str> {
-    let list_values: Vec<String> = caps
-        .as_ref()
-        .map(|c| {
-            c.iter()
-                .filter_map(|cap| cap.map(|m| m.as_str().to_string()))
-                .collect()
-        })
-        .unwrap_or_default();
-
+pub fn get_and_format<'h>(
+    string: &'h str,
+    args: &Value,
+    list_values: &Vec<String>,
+) -> Cow<'h, str> {
     let mut new_args = args.clone();
 
     let path_server_name = get(args, "path_server_name", "server_name");
@@ -56,11 +51,28 @@ pub fn get_and_format<'h>(string: &'h str, args: &Value, caps: Option<&Captures>
                 .unwrap_or(&"".to_string())
                 .to_string()
         } else {
-            if let Some(value) = args.get(&Value::String(key.to_string())) {
+            if let Some(value) = new_args.get(&Value::String(key.to_string())) {
                 value.as_str().unwrap_or("").to_string()
             } else {
                 "".to_string()
             }
         }
     })
+}
+
+pub fn get_and_format_caps<'h>(
+    string: &'h str,
+    args: &Value,
+    caps: Option<&Captures>,
+) -> Cow<'h, str> {
+    let list_values: Vec<String> = caps
+        .as_ref()
+        .map(|c| {
+            c.iter()
+                .filter_map(|cap| cap.map(|m| m.as_str().to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    get_and_format(string, &args, &list_values)
 }

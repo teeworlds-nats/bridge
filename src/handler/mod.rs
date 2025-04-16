@@ -4,7 +4,7 @@ pub mod model;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths};
-use crate::util::{get_and_format, merge_yaml_values};
+use crate::util::{get_and_format_caps, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
@@ -62,7 +62,7 @@ async fn handler(
 
                 let write_paths: Vec<String> = to
                     .iter()
-                    .map(|x| get_and_format(x, &new_args, Some(&caps)).to_string())
+                    .map(|x| get_and_format_caps(x, &new_args, Some(&caps)).to_string())
                     .collect();
                 debug!("send {} to {:?}:", json, write_paths);
                 for path in write_paths {

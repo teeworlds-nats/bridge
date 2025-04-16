@@ -2,13 +2,13 @@ mod model;
 
 use crate::bots::reader::model::MsgHandler;
 use crate::model::Config;
+use crate::util::{get, get_and_format, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info};
 use teloxide::prelude::*;
 use teloxide::types::ThreadId;
-use crate::util::{get, merge_yaml_values};
 
 pub async fn main(
     config: Config,
@@ -55,17 +55,16 @@ pub async fn main(
         };
 
         let new_args = merge_yaml_values(&msg.args, &args);
-        let value = match msg.value.len() {
-            2 => msg.value.join(": "),
-            _ => msg.value.join(" "),
-        };
-        
         let path_thread_id = get(&new_args, "path_thread_id", "message_thread_id");
         let thread_id = get(&new_args, &path_thread_id, "-1").parse()?;
+        let message_text = get(&new_args, "message_text", "{0}: {1}");
 
-        debug!("sent message to {}({}), {}", chat_id, thread_id, value);
+        let text = get_and_format(&message_text, &new_args, &msg.value);
+        println!("{}, {}", message_text, text);
 
-        bot.send_message(chat_id, value)
+        debug!("sent message to {}({}), {}", chat_id, thread_id, text);
+
+        bot.send_message(chat_id, text)
             .message_thread_id(ThreadId(teloxide::types::MessageId(thread_id)))
             .await?;
     }

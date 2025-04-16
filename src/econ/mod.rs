@@ -28,7 +28,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
         .to
         .unwrap_or(vec!["tw.econ.read.{{message_thread_id}}".to_string()])
         .iter()
-        .map(|x| get_and_format(x, &args, None).to_string())
+        .map(|x| get_and_format(x, &args, &Vec::new()).to_string())
         .collect();
     let read_path: Vec<String> = conf_nats
         .from
@@ -37,7 +37,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
             "tw.econ.moderator".to_string(),
         ])
         .iter()
-        .map(|x| get_and_format(x, &args, None).to_string())
+        .map(|x| get_and_format(x, &args, &Vec::new()).to_string())
         .collect();
 
     tokio::spawn(msg_reader(econ_reader, jetstream, write_path, args));
