@@ -4,7 +4,6 @@ use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, info, LevelFilter};
 use nestify::nest;
-use regex::Regex;
 use serde_derive::Deserialize;
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -15,83 +14,6 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tw_econ::Econ;
 // type CowStr<'a> = Cow<'a, str>;
-
-pub struct RegexData {
-    pub name: String,
-    pub regex: Regex,
-}
-
-impl RegexData {
-    pub fn new(name: String, regex: String) -> Self {
-        Self {
-            name,
-            regex: Regex::new(&regex).unwrap(),
-        }
-    }
-}
-
-pub struct ServerMessageData {
-    #[allow(dead_code)]
-    pub path_server_name: String,
-    #[allow(dead_code)]
-    pub path_thread_id: String,
-    pub server_name: String,
-    pub message_thread_id: String,
-}
-
-impl ServerMessageData {
-    pub fn get_server_name_and_server_name(args: &Value) -> Self {
-        fn get(args: &Value, index: &str, default: &str) -> String {
-            args.get(index)
-                .and_then(Value::as_str)
-                .unwrap_or(default)
-                .to_string()
-        }
-        let path_server_name = get(args, "path_server_name", "server_name");
-        let path_thread_id = get(args, "path_thread_id", "message_thread_id");
-
-        let server_name = get(args, &path_server_name, "");
-        let message_thread_id = get(args, &path_thread_id, "-1");
-
-        Self {
-            path_server_name,
-            path_thread_id,
-            server_name,
-            message_thread_id,
-        }
-    }
-
-    pub async fn replace_value<T>(&self, input: T) -> Vec<String>
-    where
-        T: IntoIterator<Item = String>,
-    {
-        input
-            .into_iter()
-            .map(|item| {
-                item.replace(
-                    &format!("{{{{{}}}}}", &self.path_thread_id),
-                    &self.message_thread_id,
-                )
-                .replace(
-                    &format!("{{{{{}}}}}", &self.path_server_name),
-                    &self.server_name,
-                )
-            })
-            .collect()
-    }
-
-    pub async fn replace_value_single(&self, value: &str) -> String {
-        value
-            .replace(
-                &format!("{{{{{}}}}}", &self.path_thread_id),
-                &self.message_thread_id,
-            )
-            .replace(
-                &format!("{{{{{}}}}}", &self.path_server_name),
-                &self.server_name,
-            )
-    }
-}
 
 nest! {
     #[derive(Clone, Deserialize)]

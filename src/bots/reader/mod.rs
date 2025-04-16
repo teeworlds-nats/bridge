@@ -1,13 +1,14 @@
 mod model;
 
 use crate::bots::reader::model::MsgHandler;
-use crate::model::{Config, ServerMessageData};
+use crate::model::Config;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info};
 use teloxide::prelude::*;
 use teloxide::types::ThreadId;
+use crate::util::{get, merge_yaml_values};
 
 pub async fn main(
     config: Config,
@@ -25,6 +26,7 @@ pub async fn main(
     let config_bot = config.bot.clone().unwrap();
     let chat_id = ChatId(config_bot.chat_id);
     let bot = config_bot.get_bot().await;
+    let args = config.args.clone().unwrap_or_default();
 
     let mut subscriber = match nats
         .queue_subscribe(subscriber_str.clone(), queue_group)
@@ -52,13 +54,14 @@ pub async fn main(
             }
         };
 
+        let new_args = merge_yaml_values(&msg.args, &args);
         let value = match msg.value.len() {
             2 => msg.value.join(": "),
             _ => msg.value.join(" "),
         };
-
-        let data = ServerMessageData::get_server_name_and_server_name(&msg.args);
-        let thread_id = data.message_thread_id.parse()?;
+        
+        let path_thread_id = get(&new_args, "path_thread_id", "message_thread_id");
+        let thread_id = get(&new_args, &path_thread_id, "-1").parse()?;
 
         debug!("sent message to {}({}), {}", chat_id, thread_id, value);
 

@@ -2,31 +2,16 @@ mod handlers;
 pub mod model;
 
 use crate::econ::model::MsgBridge;
-use crate::handlers::handler::handlers::chat_handler;
-use crate::model::{Config, NatsHandlerPaths, ServerMessageData};
+use crate::handler::handlers::chat_handler;
+use crate::model::{Config, NatsHandlerPaths};
+use crate::util::{get_and_format, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info};
 use regex::Regex;
-use serde_yaml::Value;
 use tokio::io;
-
-fn merge_yaml_values(original: &Value, new: &Value) -> Value {
-    match (original, new) {
-        (Value::Mapping(original_map), Value::Mapping(new_map)) => {
-            let mut merged_map = original_map.clone();
-
-            for (key, new_value) in new_map {
-                merged_map.insert(key.clone(), new_value.clone());
-            }
-
-            Value::Mapping(merged_map)
-        }
-        _ => original.clone(),
-    }
-}
 
 async fn handler(
     nats: Client,
@@ -73,23 +58,16 @@ async fn handler(
         for regex in &re {
             if let Some(caps) = regex.captures(&msg.text) {
                 let new_args = merge_yaml_values(&msg.args, &args);
-                println!("{:?}", new_args);
-                let json = chat_handler(caps, &new_args).await;
+                let json = chat_handler(&caps, &new_args).await;
 
-                if json.is_empty() {
-                    break;
-                }
-
-                let data = ServerMessageData::get_server_name_and_server_name(&new_args);
-
-                debug!("sent json to {:?}: {}", to, json);
+                debug!("send {} by paths:", json);
                 for write_path in &to {
-                    let path = data.replace_value_single(write_path).await;
+                    let path = get_and_format(write_path, &new_args, Some(&caps));
+                    debug!("- {}", path);
 
                     jetstream
-                        .publish(path, json.clone().into())
-                        .await
-                        .expect("Error publish message to tw.messages");
+                        .publish(path.to_string(), json.clone().into())
+                        .await?;
                 }
                 break;
             }

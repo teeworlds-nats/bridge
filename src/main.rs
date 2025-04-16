@@ -9,14 +9,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
-// Actions
-mod econ;
-mod handlers;
-
-// Other
 mod bots;
+mod econ;
 mod errors;
+mod handler;
 mod model;
+mod util;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -30,7 +28,6 @@ struct Cli {
 enum Actions {
     Econ,
     Handler,
-    HandlerAuto,
     BotReader,
     BotWriter,
 }
@@ -64,10 +61,7 @@ async fn main() -> Result<(), ConfigError> {
             econ::main(config, nc, js).await.ok();
         }
         Actions::Handler => {
-            handlers::handler::main(config, nc, js).await.ok();
-        }
-        Actions::HandlerAuto => {
-            handlers::handler_auto::main(config, nc, js).await.ok();
+            handler::main(config, nc, js).await.ok();
         }
         Actions::BotReader => {
             bots::reader::main(config, nc, js).await.ok();

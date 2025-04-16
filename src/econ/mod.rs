@@ -2,7 +2,8 @@ mod handlers;
 pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages};
-use crate::model::{Config, ServerMessageData};
+use crate::model::Config;
+use crate::util::get_and_format;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use log::{error, info};
@@ -22,29 +23,29 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
 
     let conf_nats = config.nats.clone();
     let args = config.args.clone().unwrap_or_default();
-    let data = ServerMessageData::get_server_name_and_server_name(&args);
 
-    let queue_group = format!("econ.reader.{}", &data.message_thread_id);
-    let write_path: Vec<String> = data
-        .replace_value(
-            conf_nats
-                .to
-                .unwrap_or(vec!["tw.econ.read.{{message_thread_id}}".to_string()]),
-        )
-        .await;
-    tokio::spawn(msg_reader(econ_reader, jetstream, write_path, args));
-
-    let read_path: Vec<String> = data
-        .replace_value(conf_nats.from.unwrap_or(vec![
+    let write_path: Vec<String> = conf_nats
+        .to
+        .unwrap_or(vec!["tw.econ.read.{{message_thread_id}}".to_string()])
+        .iter()
+        .map(|x| get_and_format(x, &args, None).to_string())
+        .collect();
+    let read_path: Vec<String> = conf_nats
+        .from
+        .unwrap_or(vec![
             "tw.econ.write.{{message_thread_id}}".to_string(),
             "tw.econ.moderator".to_string(),
-        ]))
-        .await;
+        ])
+        .iter()
+        .map(|x| get_and_format(x, &args, None).to_string())
+        .collect();
+
+    tokio::spawn(msg_reader(econ_reader, jetstream, write_path, args));
     for path in read_path {
         tokio::spawn(process_messages(
             tx.clone(),
             path,
-            queue_group.clone(),
+            "econ.reader".to_string(),
             nats.clone(),
         ));
     }
