@@ -69,7 +69,6 @@ async fn handler(
                         .publish(path.to_string(), json.clone().into())
                         .await?;
                 }
-                break;
             }
         }
     }
