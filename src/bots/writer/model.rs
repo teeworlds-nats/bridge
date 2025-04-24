@@ -1,7 +1,11 @@
+use async_nats::jetstream::Context;
+use async_nats::Client;
 use bytes::Bytes;
+use serde_derive::Serialize;
+use serde_yaml::Value;
 
 pub struct TextBuilder {
-    text: String,
+    pub text: String,
 }
 
 impl TextBuilder {
@@ -26,4 +30,18 @@ impl TextBuilder {
     pub fn to_bytes(&self) -> Bytes {
         Bytes::from(self.text.clone())
     }
+}
+
+#[derive(Clone)]
+pub struct ConfigParameters {
+    #[allow(dead_code)]
+    pub nats: Client,
+    pub jetstream: Context,
+    pub send_paths: Vec<String>,
+    pub args: Value,
+}
+
+#[derive(Serialize)]
+pub struct CustomArgs {
+    pub message_thread_id: String,
 }
