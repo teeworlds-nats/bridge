@@ -1,3 +1,8 @@
+# Example configs
+[econ](src/econ/config_examples)
+[handler](src/handler/config_examples)
+[bots/reader](src/bots/reader/config_examples)
+
 # how to run a program in [kubernetes](https://kubernetes.io/)
 Run [nats](https://github.com/nats-io) through the [helm](https://helm.sh)
 ```
@@ -31,16 +36,16 @@ spec:
 ```
 
 ```bash
-k create namespace telegram
+k create namespace bridge
 ```
 
-ddnet-econ-secret.yaml
+bridge-econ.yaml
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: ddnet
-  namespace: telegram
+  namespace: bridge
 type: Opaque
 stringData:
   config.yaml: |
@@ -52,41 +57,12 @@ stringData:
     args:
       server_name: ddnet
       message_thread_id: "<thread-telegram-id>"
-```
-
-bridge-handler-secret.yaml
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: handler
-  namespace: telegram
-type: Opaque
-stringData:
-  config.yaml: |
-    nats:
-      server: nats.nats:4222
-    paths:
-     - from: tw.econ.read.*
-       regex:
-         - "\\[.*?]\\[chat]: \\d+:-?\\d+:(.*): (.*)" # trainfngChatRegex
-         - "\\[.*]\\[.*]: \\*\\*\\* '(.*)' (.*)" # trainfngJoinRegex
-         - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
-         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: ([^:]+): (.*)$" # ddnetChatRegex
-         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
-       to:
-         - tw.tg.{{message_thread_id}}
-       args:
-         server_name: Test
-```
-
-ddnet-econ-deployment.yaml
-```yaml
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ddnet
-  namespace: telegram
+  namespace: bridge
   labels:
     type: ddnet
 spec:
@@ -116,13 +92,33 @@ spec:
           secretName: ddnet
 ```
 
-bridge-handler-deployment.yaml
+bridge-handler.yaml
 ```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: handler
+  namespace: bridge
+type: Opaque
+stringData:
+  config.yaml: |
+    nats:
+      server: nats.nats:4222
+    paths:
+      - from: tw.econ.read.*
+        regex:
+          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\d+:-?\\d+:([^:]+): (.*)$" # ddnetChatRegex
+          - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
+        to:
+          - tw.tg.{{message_thread_id}}
+        args:
+             server_name: Test
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: handler
-  namespace: telegram
+  namespace: bridge
   labels:
     type: handler
 spec:
@@ -156,8 +152,6 @@ spec:
 ```
 
 ```bash
-k apply -f ddnet-econ-secret.yaml 
-k apply -f bridge-handler-secret.yaml 
-k apply -f ddnet-econ-deployment.yaml 
-k apply -f bridge-handler-deployment.yaml
+k apply -f bridge-econ.yaml
+k apply -f bridge-handler.yaml
 ```
