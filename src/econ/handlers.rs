@@ -5,7 +5,7 @@ use async_nats::jetstream::Context;
 use async_nats::Client;
 use bytes::Bytes;
 use futures_util::StreamExt;
-use log::{debug, error, info};
+use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;

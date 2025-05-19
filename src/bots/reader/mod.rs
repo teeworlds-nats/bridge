@@ -6,7 +6,9 @@ use crate::util::{get, get_and_format, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures_util::StreamExt;
-use log::{debug, error, info};
+use log::{debug, error, info, trace, warn};
+use regex::Regex;
+use std::borrow::Cow;
 use teloxide::prelude::*;
 use teloxide::types::ThreadId;
 
@@ -57,11 +59,55 @@ pub async fn main(
         let new_args = merge_yaml_values(&msg.args, &args);
         let path_thread_id = get(&new_args, "path_thread_id", "message_thread_id");
         let thread_id = get(&new_args, &path_thread_id, "-1").parse()?;
-        let message_text = get(&new_args, "message_text", "{0}: {1}");
+        let message_text = get(&new_args, "message_text", "{{0}}: {{1}}");
+        let message_regex = get(&new_args, "message_regex", "");
 
-        let text = get_and_format(&message_text, &new_args, &msg.value);
+        let text = if message_regex.is_empty() {
+            get_and_format(&message_text, &new_args, &msg.value)
+        } else {
+            let regex = match Regex::new(&message_regex) {
+                Ok(r) => r,
+                Err(e) => {
+                    error!("Failed to compile regex: \"{}\", err: {}", message_regex, e);
+                    continue;
+                }
+            };
 
-        debug!("sent message to {}({}), {}", chat_id, thread_id, text);
+            let default_text = get_and_format(&message_text, &new_args, &msg.value);
+            trace!("Applying regex '{}' to \"{}\"", message_regex, default_text);
+
+            match regex.captures(&default_text) {
+                Some(caps) => {
+                    let full_match = caps.get(0).map(|m| m.as_str()).unwrap_or("");
+
+                    let other_groups: String = caps
+                        .iter()
+                        .skip(1)
+                        .flatten()
+                        .map(|m| m.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(" ");
+
+                    if full_match.is_empty() {
+                        warn!(
+                            "Empty full match for regex '{}' in {} (captured groups: {})",
+                            message_regex, default_text, other_groups
+                        );
+                        default_text
+                    } else {
+                        Cow::Owned(other_groups.to_owned())
+                    }
+                }
+                None => {
+                    warn!(
+                        "No matches found for regex '{}' in {}",
+                        message_regex, default_text
+                    );
+                    default_text
+                }
+            }
+        };
+        trace!("sent message to {}({}), {}", chat_id, thread_id, text);
         bot.send_message(chat_id, text)
             .message_thread_id(ThreadId(teloxide::types::MessageId(thread_id)))
             .await?;
