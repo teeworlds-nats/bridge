@@ -1,7 +1,5 @@
 # Example configs
-[econ](src/econ/config_examples)
-[handler](src/handler/config_examples)
-[bots/reader](src/bots/reader/config_examples)
+[econ](src/econ/config_examples), [handler](src/handler/config_examples), [bots/reader](src/bots/reader/config_examples)
 
 # how to run a program in [kubernetes](https://kubernetes.io/)
 Run [nats](https://github.com/nats-io) through the [helm](https://helm.sh)
