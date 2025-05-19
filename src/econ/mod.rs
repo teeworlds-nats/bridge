@@ -19,7 +19,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
         .econ_connect()
         .await
         .expect("econ_write failed connect");
-    info!("econ_reader and econ_write connected");
+    info!("econ connected");
 
     let conf_nats = config.nats.clone();
     let args = config.args.clone().unwrap_or_default();

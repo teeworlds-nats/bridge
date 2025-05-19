@@ -165,7 +165,7 @@ impl Config {
 
     pub async fn econ_connect(&self) -> anyhow::Result<Econ> {
         if self.econ.is_none() {
-            return Err(anyhow!("econ must be set, see config_example.yaml"));
+            return Err(anyhow!("econ must be set, see examples"));
         }
         self.econ.clone().unwrap().econ_connect().await
     }

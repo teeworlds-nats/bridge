@@ -40,7 +40,7 @@ pub async fn process_messages(
                 panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
-                error!("Error converting bytes to string: {}", err);
+                warn!("Error converting bytes to string: {}", err);
                 continue;
             }
         };
@@ -76,12 +76,12 @@ pub async fn msg_reader(
             let json = match serde_json::to_string_pretty(&send_msg) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("Error converting json to string: {}", err);
+                    warn!("Error converting json to string: {}", err);
                     continue;
                 }
             };
 
-            debug!("Sending JSON to {:?}: {}", nats_path, json);
+            trace!("Sending JSON to {:?}: {}", nats_path, json);
             for send_path in nats_path.clone() {
                 jetstream
                     .publish(send_path, Bytes::from(json.to_owned()))
@@ -95,7 +95,7 @@ pub async fn msg_reader(
 
 pub async fn check_status(tx: Sender<String>, check_message: String, check_status_econ_sec: u64) {
     loop {
-        debug!(
+        trace!(
             "check status econ, msg: \"{}\" sleep: {}",
             check_message, check_status_econ_sec
         );

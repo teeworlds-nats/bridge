@@ -49,7 +49,7 @@ pub async fn main(
                 panic!("Error deserializing JSON: {}", err);
             }),
             Err(err) => {
-                error!("Error converting bytes to string: {}", err);
+                warn!("Error converting bytes to string: {}", err);
                 continue;
             }
         };

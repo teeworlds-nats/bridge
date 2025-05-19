@@ -19,8 +19,8 @@ async fn handler(
     path: NatsHandlerPaths,
     task_count: usize,
 ) -> Result<(), async_nats::Error> {
-    let from = path.from.expect("nats.paths[?].from except");
-    let to = path.to.expect("nats.paths[?].from except");
+    let from = path.from.expect("nats.paths.from except");
+    let to = path.to.expect("nats.paths.from except");
     let re: Vec<Regex> = path
         .regex
         .clone()
