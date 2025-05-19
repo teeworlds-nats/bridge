@@ -31,7 +31,7 @@ async fn handler(
     let args = path.args.unwrap_or_default();
 
     let mut subscriber = nats
-        .queue_subscribe(from.clone(), format!("handler_{}", task_count))
+        .queue_subscribe(from.clone(), format!("handler_{task_count}"))
         .await?;
 
     info!(
@@ -48,10 +48,10 @@ async fn handler(
         );
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {}", err);
+                panic!("Error deserializing JSON: {err}");
             }),
             Err(err) => {
-                error!("Error converting bytes to string: {}", err);
+                error!("Error converting bytes to string: {err}");
                 continue;
             }
         };
@@ -64,7 +64,7 @@ async fn handler(
                     .iter()
                     .map(|x| get_and_format_caps(x, &new_args, Some(&caps)).to_string())
                     .collect();
-                debug!("send {} to {:?}:", json, write_paths);
+                debug!("send {json} to {write_paths:?}:");
                 for path in write_paths {
                     jetstream.publish(path, json.clone().into()).await?;
                 }
@@ -96,11 +96,11 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Resul
         match result {
             Ok(Ok(())) => {}
             Ok(Err(e)) => {
-                error!("Task failed: {:?}", e);
+                error!("Task failed: {e:?}");
                 return Err(io::Error::other("One of the tasks failed"));
             }
             Err(e) => {
-                error!("Task panicked: {:?}", e);
+                error!("Task panicked: {e:?}");
                 return Err(io::Error::other("One of the tasks panicked"));
             }
         }

@@ -62,7 +62,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
             match econ_write.send_line(&message).await {
                 Ok(_) => break,
                 Err(err) => {
-                    error!("Error send_line to econ: {}", err);
+                    error!("Error send_line to econ: {err}");
 
                     info!(
                         "Trying to reconnect to the server: {}/{}",
@@ -75,7 +75,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
                                 break;
                             }
                             Err(connect_err) => {
-                                error!("Error econ_connect: {}", connect_err);
+                                error!("Error econ_connect: {connect_err}");
                                 attempts += 1;
                                 tokio::time::sleep(std::time::Duration::from_secs(
                                     conf_econ.reconnect.sleep,
@@ -86,7 +86,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
                     } else {
                         info!("Max reconnect attempts reached. Giving up.");
                         if let Err(send_err) = tx.send(message).await {
-                            error!("Failed to send message back: {}", send_err);
+                            error!("Failed to send message back: {send_err}");
                         }
                         break;
                     }

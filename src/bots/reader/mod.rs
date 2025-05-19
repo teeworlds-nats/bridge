@@ -36,11 +36,11 @@ pub async fn main(
     {
         Ok(subscriber) => subscriber,
         Err(err) => {
-            panic!("Failed to subscribe to {}: {}", subscriber_str, err);
+            panic!("Failed to subscribe to \"{subscriber_str}\": {err}");
         }
     };
 
-    info!("Subscribe to the channel: {}", subscriber_str);
+    info!("Subscribe to the channel: \"{subscriber_str}\"");
     while let Some(message) = subscriber.next().await {
         debug!(
             "Message received from {}, length {}",
@@ -48,10 +48,10 @@ pub async fn main(
         );
         let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {}", err);
+                panic!("Error deserializing JSON: {err}");
             }),
             Err(err) => {
-                warn!("Error converting bytes to string: {}", err);
+                warn!("Error converting bytes to string: {err}");
                 continue;
             }
         };
@@ -68,13 +68,13 @@ pub async fn main(
             let regex = match Regex::new(&message_regex) {
                 Ok(r) => r,
                 Err(e) => {
-                    error!("Failed to compile regex: \"{}\", err: {}", message_regex, e);
+                    error!("Failed to compile regex: \"{message_regex}\", err: {e}");
                     continue;
                 }
             };
 
             let default_text = get_and_format(&message_text, &new_args, &msg.value);
-            trace!("Applying regex '{}' to \"{}\"", message_regex, default_text);
+            trace!("Applying regex \"{message_regex}\" to \"{default_text}\"");
 
             match regex.captures(&default_text) {
                 Some(caps) => {
@@ -90,8 +90,7 @@ pub async fn main(
 
                     if full_match.is_empty() {
                         warn!(
-                            "Empty full match for regex '{}' in {} (captured groups: {})",
-                            message_regex, default_text, other_groups
+                            "Empty full match for regex '{message_regex}' in {default_text} (captured groups: {other_groups})",
                         );
                         default_text
                     } else {
@@ -99,15 +98,12 @@ pub async fn main(
                     }
                 }
                 None => {
-                    warn!(
-                        "No matches found for regex '{}' in {}",
-                        message_regex, default_text
-                    );
+                    warn!("No matches found for regex '{message_regex}' in {default_text}",);
                     default_text
                 }
             }
         };
-        trace!("sent message to {}({}), {}", chat_id, thread_id, text);
+        trace!("sent message to {chat_id}({thread_id}), {text}");
         bot.send_message(chat_id, text)
             .message_thread_id(ThreadId(teloxide::types::MessageId(thread_id)))
             .await?;

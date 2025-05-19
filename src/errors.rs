@@ -9,8 +9,8 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::Io(err) => write!(f, "I/O error: {}", err),
-            ConfigError::Yaml(err) => write!(f, "YAML error: {}", err),
+            ConfigError::Io(err) => write!(f, "I/O error: {err}"),
+            ConfigError::Yaml(err) => write!(f, "YAML error: {err}"),
         }
     }
 }

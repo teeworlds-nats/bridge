@@ -5,14 +5,14 @@ use serde_yaml::Value as YamlValue;
 
 async fn get_json(value: Vec<String>, text: String, yaml_args: &YamlValue) -> String {
     let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
-        panic!("Transfer YamlValue to JsonValue Failed: {}", err);
+        panic!("Transfer YamlValue to JsonValue Failed: {err}");
     });
     let send_msg = MsgHandler { value, text, args };
 
     match serde_json::to_string_pretty(&send_msg) {
         Ok(str) => str,
         Err(err) => {
-            panic!("Json Serialize Error: {}", err);
+            panic!("Json Serialize Error: {err}");
         }
     }
 }

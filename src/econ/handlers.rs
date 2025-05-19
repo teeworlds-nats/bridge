@@ -24,12 +24,12 @@ pub async fn process_messages(
     {
         Ok(subscriber) => subscriber,
         Err(err) => {
-            error!("Failed to subscribe to {}: {}", subscriber_str, err);
+            error!("Failed to subscribe to {subscriber_str}: {err}");
             return;
         }
     };
 
-    info!("Subscribe to the channel: {}", subscriber_str);
+    info!("Subscribe to the channel: {subscriber_str}");
     while let Some(message) = subscriber.next().await {
         debug!(
             "Message received from {}, length {}",
@@ -37,16 +37,16 @@ pub async fn process_messages(
         );
         let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {}", err);
+                panic!("Error deserializing JSON: {err}");
             }),
             Err(err) => {
-                warn!("Error converting bytes to string: {}", err);
+                warn!("Error converting bytes to string: {err}");
                 continue;
             }
         };
         let result = msg.value.join(" ");
         if let Err(err) = tx.send(result).await {
-            error!("tx.send error: {}", err);
+            error!("tx.send error: {err}");
         }
     }
 }
@@ -61,13 +61,13 @@ pub async fn msg_reader(
         let line = match econ.recv_line(true).await {
             Ok(result) => result,
             Err(err) => {
-                error!("err from loop: {}", err);
+                error!("err from loop: {err}");
                 break;
             }
         };
 
         if let Some(message) = line {
-            debug!("Recevered line from econ: {}", message);
+            debug!("Recevered line from econ: {message}");
             let send_msg = MsgBridge {
                 text: message,
                 args: args.clone(),
@@ -76,12 +76,12 @@ pub async fn msg_reader(
             let json = match serde_json::to_string_pretty(&send_msg) {
                 Ok(result) => result,
                 Err(err) => {
-                    warn!("Error converting json to string: {}", err);
+                    warn!("Error converting json to string: {err}");
                     continue;
                 }
             };
 
-            trace!("Sending JSON to {:?}: {}", nats_path, json);
+            trace!("Sending JSON to {nats_path:?}: {json}");
             for send_path in nats_path.clone() {
                 jetstream
                     .publish(send_path, Bytes::from(json.to_owned()))
@@ -95,10 +95,7 @@ pub async fn msg_reader(
 
 pub async fn check_status(tx: Sender<String>, check_message: String, check_status_econ_sec: u64) {
     loop {
-        trace!(
-            "check status econ, msg: \"{}\" sleep: {}",
-            check_message, check_status_econ_sec
-        );
+        trace!("check status econ, msg: \"{check_message}\" sleep: {check_status_econ_sec}",);
         tx.send(check_message.clone())
             .await
             .expect("tx.send error, check_status failed");
