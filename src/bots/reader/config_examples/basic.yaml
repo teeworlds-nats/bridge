@@ -1,0 +1,8 @@
+nats:
+  server: nats://nats:4222
+
+bot:
+  token: TOKEN
+  chat_id: -123
+
+args: {} # combines with other "args"

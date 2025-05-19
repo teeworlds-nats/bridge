@@ -1,13 +1,7 @@
 nats:
   server: nats://nats:4222
 
-  # Handler
   paths:
-    - from: tw.econ.read.*
-      regex:
-        - "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (I|E) ([a-z]+): (.*)"
-      to:
-        - tw.DDnet.{{2}}.{{3}}
     - from: tw.econ.read.*
       regex:
         - "\\[chat]: \\d+:-?\\d+:(.*): (.*)" # teeworldsChatRegex
@@ -15,20 +9,5 @@ nats:
         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
       to:
         - tw.tg.{{message_thread_id}}
-      args:
+      args: # combines with other "args"
         server_name: Test
-
-# Econ
-econ:
-  host: 127.0.0.1:8303
-  password: econ_password
-
-# Bots
-bot:
-  token: NUMBER:TOKEN
-  chat_id: -123
-
-args:
-  server_name: Fng
-  message_thread_id: "1379" # str only
-  message_text: "{{0}}: {{1}}" # Bot variable, example

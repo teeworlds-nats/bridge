@@ -1,0 +1,10 @@
+nats:
+  server: nats://nats:4222
+  from:
+    - "tw.DDnet.I.chat"
+
+bot:
+  token: TOKEN
+  chat_id: -123
+
+args: {} # combines with other "args"
