@@ -6,3 +6,4 @@ econ:
   password: econ_password
   tasks:
     - command: "status"
+      delay: 10 # default: 60 sec

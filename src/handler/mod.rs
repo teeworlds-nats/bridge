@@ -4,12 +4,12 @@ pub mod model;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths};
-use crate::util::{get_and_format_caps, merge_yaml_values};
+use crate::util::{get, get_and_format_caps, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
-use log::{debug, error, info};
+use log::{debug, error, info, trace, warn};
 use regex::Regex;
 use tokio::io;
 
@@ -46,13 +46,14 @@ async fn handler(
                 panic!("Error deserializing JSON: {err}");
             }),
             Err(err) => {
-                error!("Error converting bytes to string: {err}");
+                warn!("Error converting bytes to string: {err}");
                 continue;
             }
         };
+        let new_args = merge_yaml_values(&msg.args, &args);
+
         for regex in &re {
             if let Some(caps) = regex.captures(&msg.text) {
-                let new_args = merge_yaml_values(&msg.args, &args);
                 let json = chat_handler(&caps, &new_args).await;
 
                 let write_paths: Vec<String> = path
@@ -60,7 +61,7 @@ async fn handler(
                     .iter()
                     .map(|x| get_and_format_caps(x, &new_args, Some(&caps)).to_string())
                     .collect();
-                debug!("send {json} to {write_paths:?}:");
+                trace!("send {json} to {write_paths:?}:");
                 for path in write_paths {
                     jetstream.publish(path, json.clone().into()).await?;
                 }
