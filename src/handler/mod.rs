@@ -4,7 +4,7 @@ pub mod model;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths};
-use crate::util::{get, get_and_format_caps, merge_yaml_values};
+use crate::util::{get_and_format_caps, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
