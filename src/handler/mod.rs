@@ -19,28 +19,23 @@ async fn handler(
     path: NatsHandlerPaths,
     task_count: usize,
 ) -> Result<(), async_nats::Error> {
-    let from = path.from.expect("nats.paths.from except");
-    let to = path.to.expect("nats.paths.from except");
     let re: Vec<Regex> = path
         .regex
-        .clone()
-        .expect("nats.paths[?].regex expected")
         .iter()
         .filter_map(|r| Regex::new(r).ok())
         .collect();
     let args = path.args.unwrap_or_default();
 
-    let mut subscriber = nats
-        .queue_subscribe(from.clone(), format!("handler_{task_count}"))
-        .await?;
-
     info!(
         "Handler started from {} to {:?}, regex.len: {}, job_id: {}",
-        from,
-        to,
+        path.from,
+        path.to,
         re.len(),
         task_count
     );
+    let mut subscriber = nats
+        .queue_subscribe(path.from, format!("handler_{task_count}"))
+        .await?;
     while let Some(message) = subscriber.next().await {
         debug!(
             "message received from {}, length {}, job_id: {}",
@@ -60,7 +55,8 @@ async fn handler(
                 let new_args = merge_yaml_values(&msg.args, &args);
                 let json = chat_handler(&caps, &new_args).await;
 
-                let write_paths: Vec<String> = to
+                let write_paths: Vec<String> = path
+                    .to
                     .iter()
                     .map(|x| get_and_format_caps(x, &new_args, Some(&caps)).to_string())
                     .collect();

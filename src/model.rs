@@ -13,48 +13,55 @@ use teloxide::Bot as TBot;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tw_econ::Econ;
-// type CowStr<'a> = Cow<'a, str>;
 
 nest! {
-    #[derive(Clone, Deserialize)]
+    #[derive(Default, Clone, Deserialize)]
     pub struct Config {
         logging: Option<String>,
         pub nats:
-            #[derive(Clone, Deserialize)]
+            #[derive(Default, Clone, Deserialize)]
             pub struct NatsConfig {
                 pub server: String,
                 pub user: Option<String>,
                 pub password: Option<String>,
 
-                // Econ & handler-auto
+                // Econ & Bots
                 pub from: Option<Vec<String>>,
                 pub to: Option<Vec<String>>,
 
                 // Handler
                 pub paths: Option<Vec<
-                    #[derive(Clone, Deserialize)]
+                    #[derive(Default, Clone, Deserialize)]
                     pub struct NatsHandlerPaths {
-                        pub from: Option<String>,
-                        pub regex: Option<Vec<String>>,
-                        pub to: Option<Vec<String>>,
+                        pub from: String,
+                        pub regex: Vec<String>,
+                        pub to: Vec<String>,
                         pub args: Option<Value>,
                     }>>,
             },
 
         // econ
         pub econ: Option<
-            #[derive(Clone, Deserialize)]
+            #[derive(Default, Clone, Deserialize)]
             pub struct EconConfig {
                 pub host: String,
                 pub password: String,
                 pub auth_message: Option<String>,
                 #[serde(default = "default_check_status_econ_sec")]
                 pub check_status_econ_sec: u64,
-                #[serde(default = "default_check_message")]
+                #[serde(default)]
                 pub check_message: String,
+                #[serde(default)]
+                pub tasks: Vec<
+                    #[derive(Default, Clone, Deserialize)]
+                    pub struct EconTasksConfig {
+                        pub command: String,
+                        #[serde(default = "default_tasks_delay_sec")]
+                        pub delay: u64
+                    }>,
                 #[serde(default = "default_reconnect")]
                 pub reconnect:
-                    #[derive(Clone, Deserialize)]
+                    #[derive(Default, Clone, Deserialize)]
                     pub struct ReconnectConfig {
                         #[serde(default = "default_max_attempts")]
                         pub max_attempts: i64,
@@ -63,15 +70,14 @@ nest! {
                     },
             }>,
 
-        pub args: Option<Value>,
-
         pub bot: Option<
-            #[derive(Clone, Deserialize)]
+            #[derive(Default, Clone, Deserialize)]
             pub struct BotConfig {
                 pub token: String,
                 pub chat_id: i64,
             }>,
 
+        pub args: Option<Value>,
     }
 }
 
@@ -79,8 +85,8 @@ fn default_check_status_econ_sec() -> u64 {
     5
 }
 
-fn default_check_message() -> String {
-    "".to_string()
+fn default_tasks_delay_sec() -> u64 {
+    60
 }
 
 fn default_max_attempts() -> i64 {

@@ -40,7 +40,6 @@ async fn main() -> Result<(), ConfigError> {
     config.set_logging();
 
     let term_now = Arc::new(AtomicBool::new(false));
-
     for sig in TERM_SIGNALS {
         flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
         flag::register(*sig, Arc::clone(&term_now))?;

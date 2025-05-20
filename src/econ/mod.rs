@@ -1,7 +1,7 @@
 mod handlers;
 pub mod model;
 
-use crate::econ::handlers::{check_status, msg_reader, process_messages};
+use crate::econ::handlers::{check_status, msg_reader, process_messages, task};
 use crate::model::Config;
 use crate::util::get_and_format;
 use async_nats::jetstream::Context;
@@ -22,6 +22,7 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
     info!("econ connected");
 
     let conf_nats = config.nats.clone();
+    let conf_econ = config.econ.unwrap();
     let args = config.args.clone().unwrap_or_default();
 
     let write_path: Vec<String> = conf_nats
@@ -49,12 +50,15 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
             nats.clone(),
         ));
     }
-    let conf_econ = config.econ.unwrap();
+    for _task in conf_econ.tasks.clone() {
+        tokio::spawn(task(tx.clone(), _task.command, _task.delay));
+    }
     tokio::spawn(check_status(
         tx.clone(),
         conf_econ.check_message.clone(),
         conf_econ.check_status_econ_sec,
     ));
+
     while let Some(message) = rx.recv().await {
         let mut attempts = 0;
 
