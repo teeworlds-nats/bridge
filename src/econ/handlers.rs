@@ -1,7 +1,9 @@
 use crate::econ::model::MsgBridge;
 use crate::handler::model::MsgHandler;
+use crate::model::CowString;
 use async_nats::jetstream::context::PublishError;
 use async_nats::jetstream::Context;
+use async_nats::subject::ToSubject;
 use async_nats::Client;
 use bytes::Bytes;
 use futures_util::StreamExt;
@@ -12,14 +14,14 @@ use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
 
-pub async fn process_messages(
+pub async fn process_messages<'a>(
     tx: Sender<String>,
-    subscriber_str: String,
+    subscriber_str: CowString<'a>,
     queue_group: String,
     nats: Client,
 ) {
     let mut subscriber = match nats
-        .queue_subscribe(subscriber_str.clone(), queue_group)
+        .queue_subscribe(subscriber_str.clone().to_subject(), queue_group.to_string())
         .await
     {
         Ok(subscriber) => subscriber,

@@ -4,6 +4,7 @@ use crate::bots::reader::model::MsgHandler;
 use crate::model::Config;
 use crate::util::{get, get_and_format, merge_yaml_values};
 use async_nats::jetstream::Context;
+use async_nats::subject::ToSubject;
 use async_nats::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
@@ -12,15 +13,15 @@ use std::borrow::Cow;
 use teloxide::prelude::*;
 use teloxide::types::ThreadId;
 
-pub async fn main(
-    config: Config,
+pub async fn main<'a>(
+    config: Config<'a>,
     nats: Client,
     _jetstream: Context,
 ) -> Result<(), async_nats::Error> {
     let subscriber_str = config
         .nats
         .from
-        .unwrap_or(vec!["tw.tg.*".to_string()])
+        .unwrap_or(vec![Cow::Owned("tw.tg.*".to_string())])
         .first()
         .unwrap()
         .clone();
@@ -31,7 +32,7 @@ pub async fn main(
     let args = config.args.clone().unwrap_or_default();
 
     let mut subscriber = match nats
-        .queue_subscribe(subscriber_str.clone(), queue_group)
+        .queue_subscribe(subscriber_str.clone().to_subject(), queue_group)
         .await
     {
         Ok(subscriber) => subscriber,
@@ -104,7 +105,7 @@ pub async fn main(
             }
         };
         trace!("sent message to {chat_id}({thread_id}), {text}");
-        bot.send_message(chat_id, text)
+        bot.send_message(chat_id, text.to_string())
             .message_thread_id(ThreadId(teloxide::types::MessageId(thread_id)))
             .await?;
     }

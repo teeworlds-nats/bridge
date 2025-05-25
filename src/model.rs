@@ -4,8 +4,9 @@ use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
 use log::{debug, info, LevelFilter};
 use nestify::nest;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
+use std::borrow::Cow;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::option::Option;
 use teloxide::prelude::Requester;
@@ -14,20 +15,23 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tw_econ::Econ;
 
+pub type CowString<'a> = Cow<'a, String>;
+
 nest! {
     #[derive(Default, Clone, Deserialize)]
-    pub struct Config {
+    pub struct Config<'a> {
         logging: Option<String>,
         pub nats:
             #[derive(Default, Clone, Deserialize)]
-            pub struct NatsConfig {
+            pub struct NatsConfig<'c> {
                 pub server: String,
                 pub user: Option<String>,
                 pub password: Option<String>,
 
                 // Econ & Bots
-                pub from: Option<Vec<String>>,
-                pub to: Option<Vec<String>>,
+                pub from: Option<Vec<CowString<'c>>>,
+                pub to: Option<Vec<CowString<'c>>>,
+                pub errors: Option<CowString<'c>>,
 
                 // Handler
                 pub paths: Option<Vec<
@@ -38,7 +42,7 @@ nest! {
                         pub to: Vec<String>,
                         pub args: Option<Value>,
                     }>>,
-            },
+            } ||<'a>,
 
         // econ
         pub econ: Option<
@@ -147,7 +151,7 @@ impl BotConfig {
     }
 }
 
-impl Config {
+impl<'a> Config<'a> {
     pub async fn get_yaml() -> Result<Self, ConfigError> {
         let mut contents = String::new();
 
@@ -188,4 +192,10 @@ impl Config {
         debug!("Connected nats: {}", self.nats.server);
         Ok(nc)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MsgError<'a> {
+    pub text: String,
+    pub publish: CowString<'a>,
 }

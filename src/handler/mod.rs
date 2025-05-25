@@ -72,7 +72,7 @@ async fn handler(
     Ok(())
 }
 
-pub async fn main(config: Config, nats: Client, jetstream: Context) -> io::Result<()> {
+pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> io::Result<()> {
     let mut tasks = vec![];
 
     for (task_count, path) in config

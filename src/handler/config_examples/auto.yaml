@@ -3,6 +3,14 @@ nats:
   paths:
     - from: tw.econ.read.*
       regex:
+        # Sends to subject:
+        # tw.DDnet.I.chat
+        # tw.DDnet.I.game
+        # tw.DDnet.I.server
+        # tw.DDnet.I.econ
+        # tw.DDnet.I.rcon
+        # tw.DDnet.E.*
+        # tw.DDnet.{etc}
         - "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (I|E) ([a-z]+): (.*)"
       to:
         - tw.DDnet.{{2}}.{{3}}

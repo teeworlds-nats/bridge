@@ -2,14 +2,24 @@ mod handlers;
 pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages, task};
-use crate::model::Config;
+use crate::model::{Config, CowString, MsgError};
 use crate::util::get_and_format;
 use async_nats::jetstream::Context;
+use async_nats::subject::ToSubject;
 use async_nats::Client;
-use log::{error, info};
+use bytes::Bytes;
+use log::{error, info, warn};
+use std::borrow::Cow;
 use tokio::sync::mpsc;
 
-pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::Result<()> {
+fn default_from<'a>() -> Vec<CowString<'a>> {
+    vec![
+        Cow::Owned("tw.econ.write.{{message_thread_id}}".to_string()),
+        Cow::Owned("tw.econ.moderator".to_string()),
+    ]
+}
+
+pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel(64);
     let econ_reader = config
         .econ_connect()
@@ -27,21 +37,23 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
 
     let write_path: Vec<String> = conf_nats
         .to
-        .unwrap_or(vec!["tw.econ.read.{{message_thread_id}}".to_string()])
+        .unwrap_or(vec![Cow::Owned(
+            "tw.econ.read.{{message_thread_id}}".to_string(),
+        )])
         .iter()
         .map(|x| get_and_format(x, &args, &Vec::new()).to_string())
         .collect();
-    let read_path: Vec<String> = conf_nats
+    let errors: CowString = conf_nats
+        .errors
+        .unwrap_or(Cow::Owned("tw.econ.errors".to_string()));
+    let read_path: Vec<CowString> = conf_nats
         .from
-        .unwrap_or(vec![
-            "tw.econ.write.{{message_thread_id}}".to_string(),
-            "tw.econ.moderator".to_string(),
-        ])
+        .unwrap_or(default_from())
         .iter()
-        .map(|x| get_and_format(x, &args, &Vec::new()).to_string())
+        .map(|x| get_and_format(x, &args, &Vec::new()))
         .collect();
 
-    tokio::spawn(msg_reader(econ_reader, jetstream, write_path, args));
+    tokio::spawn(msg_reader(econ_reader, jetstream.clone(), write_path, args));
     for path in read_path {
         tokio::spawn(process_messages(
             tx.clone(),
@@ -89,6 +101,25 @@ pub async fn main(config: Config, nats: Client, jetstream: Context) -> std::io::
                         }
                     } else {
                         info!("Max reconnect attempts reached. Giving up.");
+                        let send_msg = MsgError {
+                            text: message.clone(),
+                            publish: errors.clone(),
+                        };
+
+                        let json = match serde_json::to_string_pretty(&send_msg) {
+                            Ok(result) => result,
+                            Err(err) => {
+                                warn!("Error converting json to string: {err}");
+                                continue;
+                            }
+                        };
+
+                        jetstream
+                            .publish(errors.clone().to_subject(), Bytes::from(json.to_owned()))
+                            .await
+                            .expect("Failed publish json")
+                            .await
+                            .expect("Failed publish json(2)");
                         if let Err(send_err) = tx.send(message).await {
                             error!("Failed to send message back: {send_err}");
                         }
