@@ -152,10 +152,10 @@ impl BotConfig {
 }
 
 impl<'a> Config<'a> {
-    pub async fn get_yaml() -> Result<Self, ConfigError> {
+    pub async fn load_yaml(config: &str) -> Result<Self, ConfigError> {
         let mut contents = String::new();
 
-        File::open("config.yaml")
+        File::open(config)
             .await?
             .read_to_string(&mut contents)
             .await?;

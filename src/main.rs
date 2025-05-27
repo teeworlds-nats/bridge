@@ -20,6 +20,8 @@ mod util;
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 struct Cli {
+    #[arg(short, long, global = true, default_value = "config.yaml")]
+    config: String,
     #[command(subcommand)]
     action: Actions,
 }
@@ -36,7 +38,7 @@ enum Actions {
 async fn main() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
-    let config = Config::get_yaml().await?;
+    let config = Config::load_yaml(&cli.config).await?;
     config.set_logging();
 
     let term_now = Arc::new(AtomicBool::new(false));
