@@ -62,9 +62,7 @@ Explore our example configurations for each component:
 ## 🛠 Deployment
 
 ### Kubernetes
-```bash
-kubectl apply -f k8s/
-```
+[k8s.md](guide/k8s.md)
 
 ### Manual
 ```bash
