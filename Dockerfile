@@ -14,6 +14,8 @@ FROM debian:bookworm-slim
 
 WORKDIR /tw
 
+RUN apt-get update && apt-get install -y libssl3 && rm -rf /var/lib/apt/lists/*
+
 COPY --from=rust-build /app_build/target/release/bridge /tw/bridge
 
 CMD ["/tw/bridge", "econ"]
