@@ -196,17 +196,13 @@ impl<'a> Config<'a> {
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {
         let connect = match &self.nats.auth {
-        Some(NatsAuth::UserPassword { user, password }) => {
-            ConnectOptions::new().user_and_password(user.clone(), password.clone())
-        }
-        Some(NatsAuth::NKey(nkey)) => {
-            ConnectOptions::new().nkey(nkey.clone())
-        }
-        Some(NatsAuth::Token(token)) => {
-            ConnectOptions::new().token(token.clone())
-        }
-        None => ConnectOptions::new(),
-    };
+            Some(NatsAuth::UserPassword { user, password }) => {
+                ConnectOptions::new().user_and_password(user.clone(), password.clone())
+            }
+            Some(NatsAuth::NKey(nkey)) => ConnectOptions::new().nkey(nkey.clone()),
+            Some(NatsAuth::Token(token)) => ConnectOptions::new().token(token.clone()),
+            None => ConnectOptions::new(),
+        };
         let nc = connect
             .ping_interval(std::time::Duration::from_secs(self.nats.ping_interval))
             .require_tls(self.nats.tls)
