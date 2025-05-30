@@ -57,7 +57,8 @@ type: Opaque
 stringData:
   config.yaml: |
     nats:
-      server: nats.nats:4222
+      server:
+        - nats://nats:4222
     econ:
       host: <server>:8303
       password: amogus
@@ -108,7 +109,8 @@ type: Opaque
 stringData:
   config.yaml: |
     nats:
-      server: nats.nats:4222
+      server:
+        - nats://nats:4222
     paths:
       - from: tw.econ.read.*
         regex:

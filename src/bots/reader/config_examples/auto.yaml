@@ -1,5 +1,6 @@
 nats:
-  server: nats://nats:4222
+  server:
+    - nats://nats:4222
   from:
     - "tw.DDnet.I.chat"
 

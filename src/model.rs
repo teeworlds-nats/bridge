@@ -15,6 +15,13 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tw_econ::Econ;
 
+#[derive(Clone, Debug, Deserialize)]
+pub enum NatsAuth {
+    UserPassword { user: String, password: String },
+    NKey(String),
+    Token(String),
+}
+
 pub type CowString<'a> = Cow<'a, String>;
 
 nest! {
@@ -24,9 +31,12 @@ nest! {
         pub nats:
             #[derive(Default, Clone, Deserialize)]
             pub struct NatsConfig<'c> {
-                pub server: String,
-                pub user: Option<String>,
-                pub password: Option<String>,
+                pub server: Vec<String>,
+                pub auth: Option<NatsAuth>,
+                #[serde(default = "default_ping_interval")]
+                pub ping_interval: u64,
+                #[serde(default)]
+                pub tls: bool,
 
                 // Econ & Bots
                 pub from: Option<Vec<CowString<'c>>>,
@@ -83,6 +93,10 @@ nest! {
 
         pub args: Option<Value>,
     }
+}
+
+fn default_ping_interval() -> u64 {
+    15
 }
 
 fn default_check_status_econ_sec() -> u64 {
@@ -181,15 +195,24 @@ impl<'a> Config<'a> {
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {
-        let connect = match (self.nats.user.clone(), self.nats.password.clone()) {
-            (Some(user), Some(password)) => ConnectOptions::new().user_and_password(user, password),
-            _ => ConnectOptions::new(),
-        };
+        let connect = match &self.nats.auth {
+        Some(NatsAuth::UserPassword { user, password }) => {
+            ConnectOptions::new().user_and_password(user.clone(), password.clone())
+        }
+        Some(NatsAuth::NKey(nkey)) => {
+            ConnectOptions::new().nkey(nkey.clone())
+        }
+        Some(NatsAuth::Token(token)) => {
+            ConnectOptions::new().token(token.clone())
+        }
+        None => ConnectOptions::new(),
+    };
         let nc = connect
-            .ping_interval(std::time::Duration::from_secs(15))
+            .ping_interval(std::time::Duration::from_secs(self.nats.ping_interval))
+            .require_tls(self.nats.tls)
             .connect(&self.nats.server)
             .await?;
-        debug!("Connected nats: {}", self.nats.server);
+        debug!("Connected nats: {:?}", self.nats.server);
         Ok(nc)
     }
 }
