@@ -26,20 +26,22 @@ async fn handler(
         .collect();
     let args = path.args.unwrap_or_default();
 
+    let sub_path = path.queue.replace("{{task_count}}", &task_count.to_string());
     info!(
-        "Handler started from {} to {:?}, regex.len: {}, job_id: {}",
+        "Handler started from {} to {:?}, regex.len: {}, job_id: {}, sub_path: {}",
         path.from,
         path.to,
         re.len(),
-        task_count
+        task_count,
+        sub_path
     );
     let mut subscriber = nats
-        .queue_subscribe(path.from, format!("handler_{task_count}"))
+        .queue_subscribe(path.from, sub_path.clone())
         .await?;
     while let Some(message) = subscriber.next().await {
         debug!(
-            "message received from {}, length {}, job_id: {}",
-            message.subject, message.length, task_count
+            "message received from {}, length {}, job_id: {}, sub_path: {}",
+            message.subject, message.length, task_count, sub_path
         );
         let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
             Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {

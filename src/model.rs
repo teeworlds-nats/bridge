@@ -53,6 +53,8 @@ nest! {
                         pub regex: Vec<String>,
                         pub to: Vec<String>,
                         pub args: Option<Value>,
+                        #[serde(default = "default_queue")]
+                        pub queue: String,
                     }>>,
             } ||<'a>,
 
@@ -95,6 +97,10 @@ nest! {
 
         pub args: Option<Value>,
     }
+}
+
+fn default_queue() -> String {
+    "handler_{{task_count}}".to_string()
 }
 
 fn default_ping_interval() -> u64 {
