@@ -26,7 +26,9 @@ async fn handler(
         .collect();
     let args = path.args.unwrap_or_default();
 
-    let sub_path = path.queue.replace("{{task_count}}", &task_count.to_string());
+    let sub_path = path
+        .queue
+        .replace("{{task_count}}", &task_count.to_string());
     info!(
         "Handler started from {} to {:?}, regex.len: {}, job_id: {}, sub_path: {}",
         path.from,
@@ -35,9 +37,7 @@ async fn handler(
         task_count,
         sub_path
     );
-    let mut subscriber = nats
-        .queue_subscribe(path.from, sub_path.clone())
-        .await?;
+    let mut subscriber = nats.queue_subscribe(path.from, sub_path.clone()).await?;
     while let Some(message) = subscriber.next().await {
         debug!(
             "message received from {}, length {}, job_id: {}, sub_path: {}",
