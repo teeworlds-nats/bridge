@@ -41,6 +41,8 @@ nest! {
                 // Econ & Bots
                 pub from: Option<Vec<CowString<'c>>>,
                 pub to: Option<Vec<CowString<'c>>>,
+                #[serde(default)]
+                pub queue: bool,
                 pub errors: Option<CowString<'c>>,
 
                 // Handler

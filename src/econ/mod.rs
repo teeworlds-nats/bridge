@@ -58,7 +58,7 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
         tokio::spawn(process_messages(
             tx.clone(),
             path,
-            "econ.reader".to_string(),
+            config.nats.queue,
             nats.clone(),
         ));
     }

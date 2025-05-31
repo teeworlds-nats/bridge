@@ -17,19 +17,19 @@ use tw_econ::Econ;
 pub async fn process_messages<'a>(
     tx: Sender<String>,
     subscriber_str: CowString<'a>,
-    queue_group: String,
+    queue: bool,
     nats: Client,
 ) {
-    let mut subscriber = match nats
-        .queue_subscribe(subscriber_str.clone().to_subject(), queue_group.to_string())
-        .await
-    {
-        Ok(subscriber) => subscriber,
-        Err(err) => {
-            error!("Failed to subscribe to {subscriber_str}: {err}");
-            return;
-        }
-    };
+    let mut subscriber = if queue {
+        nats.queue_subscribe(subscriber_str.to_subject(), "econ.reader".to_string())
+            .await
+    } else {
+        nats.subscribe(subscriber_str.to_subject()).await
+    }
+    .unwrap_or_else(|err| {
+        error!("Failed to subscribe to {subscriber_str}: {err}");
+        std::process::exit(1);
+    });
 
     info!("Subscribe to the channel: {subscriber_str}");
     while let Some(message) = subscriber.next().await {
