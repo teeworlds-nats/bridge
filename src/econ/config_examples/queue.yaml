@@ -2,7 +2,7 @@ nats:
   server:
     - nats://nats:4222
   from:
-    - tw.econ.write.{{message_thread_id}},
+    - tw.econ.write.{{message_thread_id}}
     - tw.econ.sync
   # Remove or disable if you want the distribution to be disabled
   # https://docs.nats.io/nats-concepts/core-nats/queue

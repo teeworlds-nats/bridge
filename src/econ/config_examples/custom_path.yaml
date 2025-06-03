@@ -2,8 +2,8 @@ nats:
   server:
     - nats://nats:4222
   from: 
-    - tw.econ.write.{{message_thread_id}},
-    - tw.econ.moderator,
+    - tw.econ.write.{{message_thread_id}}
+    - tw.econ.moderator
   to: 
     - tw.econ.read.{{message_thread_id}}
 

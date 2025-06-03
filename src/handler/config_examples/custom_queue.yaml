@@ -10,6 +10,7 @@ nats:
         - "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} I chat: \\*\\*\\* '(.*?)' (.*)$" # ddnetJoinRegex
       to:
         - tw.tg.{{message_thread_id}}
-      queue: "tw_ddnet" # https://docs.nats.io/nats-concepts/core-nats/queue
+      # https://docs.nats.io/nats-concepts/core-nats/queue
+      queue: "tw_ddnet"
       args: # combines with other "args"
         server_name: Test
