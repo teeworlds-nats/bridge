@@ -4,8 +4,12 @@ WORKDIR /app_build
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install pkg-config libssl-dev libssl3 ca-certificates -y && \
-    rm -rf /var/lib/apt/lists/* && \
+    apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libssl3 \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir -p src && \
