@@ -11,16 +11,8 @@ RUN apt-get update && \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir -p src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-COPY src ./src
-RUN cargo build --release && \
-    strip target/release/bridge
-
+COPY . ./
+RUN cargo build --release
 
 FROM debian:bookworm-slim
 
