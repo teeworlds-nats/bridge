@@ -16,6 +16,7 @@ helm upgrade --install nats nats/nats \
   --set config.jetstream.enabled=true \
   --set config.jetstream.memoryStore.enabled=true \
   --set config.cluster.enabled=true --wait \
+  --set config.jetstream.fileStore.pvc.enabled=false \
   --namespace=nats --create-namespace
 
 # Install NACK (NATS Controller for Kubernetes)
@@ -35,7 +36,6 @@ spec:
   name: tw
   subjects: ["tw.>"]
   storage: memory
-  maxAge: 5m
   maxMsgs: 1000
 ```
 
