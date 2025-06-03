@@ -53,7 +53,12 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
         .map(|x| get_and_format(x, &args, &Vec::new()))
         .collect();
 
-    tokio::spawn(msg_reader(econ_reader, jetstream.clone(), write_path, args));
+    tokio::spawn(msg_reader(
+        econ_reader,
+        jetstream.clone(),
+        write_path,
+        args.clone(),
+    ));
     for path in read_path {
         tokio::spawn(process_messages(
             tx.clone(),
@@ -85,7 +90,7 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
                         attempts, conf_econ.reconnect.max_attempts
                     );
                     if attempts < conf_econ.reconnect.max_attempts {
-                        match conf_econ.econ_connect().await {
+                        match conf_econ.econ_connect(Some(&args)).await {
                             Ok(result) => {
                                 econ_write = result;
                                 break;

@@ -1,4 +1,5 @@
 use crate::errors::ConfigError;
+use crate::util::get_and_format;
 use anyhow::anyhow;
 use async_nats::{Client, ConnectOptions, Error as NatsError};
 use env_logger::Builder;
@@ -131,18 +132,19 @@ fn default_reconnect() -> ReconnectConfig {
 }
 
 impl EconConfig {
-    pub fn get_econ_addr(&self) -> SocketAddr {
-        self.host
+    pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
+        let args = args.unwrap_or(&Value::Null);
+        get_and_format(&self.host, args, &[])
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()
             .unwrap()
     }
 
-    pub async fn econ_connect(&self) -> anyhow::Result<Econ> {
+    pub async fn econ_connect(&self, args: Option<&Value>) -> anyhow::Result<Econ> {
         let mut econ = Econ::new();
 
-        match econ.connect(self.get_econ_addr()).await {
+        match econ.connect(self.get_econ_addr(args)).await {
             Ok(_) => {}
             Err(err) => return Err(anyhow!("econ.connect, err: {}", err)),
         };
@@ -199,7 +201,11 @@ impl<'a> Config<'a> {
         if self.econ.is_none() {
             return Err(anyhow!("econ must be set, see examples"));
         }
-        self.econ.clone().unwrap().econ_connect().await
+        self.econ
+            .clone()
+            .unwrap()
+            .econ_connect(Option::from(&self.args))
+            .await
     }
 
     pub async fn connect_nats(&self) -> Result<Client, NatsError> {
