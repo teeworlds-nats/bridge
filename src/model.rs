@@ -91,7 +91,6 @@ nest! {
             #[derive(Default, Clone, Deserialize)]
             pub struct BotConfig {
                 pub token: String,
-                pub chat_id: i64,
             }>,
 
         pub args: Option<Value>,
