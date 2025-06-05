@@ -1,7 +1,6 @@
 mod handlers;
 pub mod model;
 
-use std::borrow::Cow;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths};
@@ -12,6 +11,7 @@ use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info, trace};
 use regex::Regex;
+use std::borrow::Cow;
 use tokio::io;
 
 async fn handler<'a>(
@@ -41,7 +41,9 @@ async fn handler<'a>(
         task_count,
         sub_path
     );
-    let mut subscriber = nats.queue_subscribe(path.from, sub_path.clone().to_string()).await?;
+    let mut subscriber = nats
+        .queue_subscribe(path.from, sub_path.clone().to_string())
+        .await?;
     while let Some(message) = subscriber.next().await {
         debug!(
             "message received from {}, length {}, job_id: {}, sub_path: {}",

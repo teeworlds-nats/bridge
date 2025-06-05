@@ -47,13 +47,13 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
         conf_nats.errors,
         &args,
         &[],
-        Cow::Owned("tw.econ.errors".to_string()),  
+        Cow::Owned("tw.econ.errors".to_string()),
     );
     let queue: CowString = format_single(
         conf_nats.queue,
         &args,
         &[],
-        Cow::Owned("econ.reader".to_string()),  
+        Cow::Owned("econ.reader".to_string()),
     );
 
     tokio::spawn(msg_reader(

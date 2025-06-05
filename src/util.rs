@@ -116,7 +116,7 @@ pub fn get_and_format(string: &str, args: &Value, list_values: &[String]) -> Cow
                 String::new()
             }
         })
-        .into_owned()
+        .into_owned(),
     )
 }
 

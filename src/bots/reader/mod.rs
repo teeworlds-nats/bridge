@@ -48,10 +48,7 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, _jetstream: Context) -> 
     while let Some((text, chat_id, thread_id)) = rx.recv().await {
         // Валидация параметров с более информативным логом
         if chat_id == -1 {
-            warn!(
-                "Skipping message send attempt - invalid chat_id (-1), text: '{}'",
-                text
-            );
+            warn!("Skipping message send attempt - invalid chat_id (-1), text: '{text}'",);
             continue;
         }
 
@@ -66,11 +63,11 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, _jetstream: Context) -> 
 
         match msg.await {
             Ok(_) => {
-                trace!("Message successfully sent to chat {}", chat_id);
+                trace!("Message successfully sent to chat {chat_id}");
             }
             Err(err) => match err {
                 RetryAfter(seconds) => {
-                    info!("sleeping for {} seconds", seconds);
+                    info!("sleeping for {seconds} seconds");
                     sleep(seconds.duration()).await;
                 }
                 _ => {
