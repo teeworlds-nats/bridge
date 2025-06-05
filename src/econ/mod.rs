@@ -3,7 +3,7 @@ pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages, task};
 use crate::model::{Config, CowString, MsgError};
-use crate::util::get_and_format;
+use crate::util::{format, format_single};
 use async_nats::jetstream::Context;
 use async_nats::subject::ToSubject;
 use async_nats::Client;
@@ -11,13 +11,6 @@ use bytes::Bytes;
 use log::{error, info, warn};
 use std::borrow::Cow;
 use tokio::sync::mpsc;
-
-fn default_from<'a>() -> Vec<CowString<'a>> {
-    vec![
-        Cow::Owned("tw.econ.write.{{message_thread_id}}".to_string()),
-        Cow::Owned("tw.econ.moderator".to_string()),
-    ]
-}
 
 pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel(64);
@@ -35,23 +28,33 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
     let conf_econ = config.econ.unwrap();
     let args = config.args.clone().unwrap_or_default();
 
-    let write_path: Vec<String> = conf_nats
-        .to
-        .unwrap_or(vec![Cow::Owned(
-            "tw.econ.read.{{message_thread_id}}".to_string(),
-        )])
-        .iter()
-        .map(|x| get_and_format(x, &args, &Vec::new()).to_string())
-        .collect();
-    let errors: CowString = conf_nats
-        .errors
-        .unwrap_or(Cow::Owned("tw.econ.errors".to_string()));
-    let read_path: Vec<CowString> = conf_nats
-        .from
-        .unwrap_or(default_from())
-        .iter()
-        .map(|x| get_and_format(x, &args, &Vec::new()))
-        .collect();
+    let read_path: Vec<CowString> = format(
+        conf_nats.from,
+        &args,
+        &[],
+        vec![
+            Cow::Owned("tw.econ.write.{{message_thread_id}}".to_string()),
+            Cow::Owned("tw.econ.moderator".to_string()),
+        ],
+    );
+    let write_path: Vec<CowString> = format(
+        conf_nats.to,
+        &args,
+        &[],
+        vec![Cow::Owned("tw.econ.read.{{message_thread_id}}".to_string())],
+    );
+    let errors: CowString = format_single(
+        conf_nats.errors,
+        &args,
+        &[],
+        Cow::Owned("tw.econ.errors".to_string()),  
+    );
+    let queue: CowString = format_single(
+        conf_nats.queue,
+        &args,
+        &[],
+        Cow::Owned("econ.reader".to_string()),  
+    );
 
     tokio::spawn(msg_reader(
         econ_reader,
@@ -63,7 +66,7 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
         tokio::spawn(process_messages(
             tx.clone(),
             path,
-            config.nats.queue,
+            queue.clone(),
             nats.clone(),
         ));
     }

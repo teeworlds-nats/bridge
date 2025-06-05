@@ -13,18 +13,19 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
+use crate::util::convert;
 
 pub async fn process_messages<'a>(
     tx: Sender<String>,
     subscriber_str: CowString<'a>,
-    queue: bool,
+    queue: CowString<'a>,
     nats: Client,
 ) {
-    let mut subscriber = if queue {
-        nats.queue_subscribe(subscriber_str.to_subject(), "econ.reader".to_string())
-            .await
-    } else {
+    let mut subscriber = if queue.is_empty() {
         nats.subscribe(subscriber_str.to_subject()).await
+    } else {
+        nats.queue_subscribe(subscriber_str.to_subject(), queue.to_string())
+            .await
     }
     .unwrap_or_else(|err| {
         error!("Failed to subscribe to {subscriber_str}: {err}");
@@ -56,7 +57,7 @@ pub async fn process_messages<'a>(
 pub async fn msg_reader(
     mut econ: Econ,
     jetstream: Context,
-    nats_path: Vec<String>,
+    nats_path: Vec<CowString<'static>>,
     args: Value,
 ) -> Result<(), PublishError> {
     loop {
@@ -86,7 +87,7 @@ pub async fn msg_reader(
             trace!("Sending JSON to {nats_path:?}: {json}");
             for send_path in nats_path.clone() {
                 jetstream
-                    .publish(send_path, Bytes::from(json.to_owned()))
+                    .publish(send_path.into_owned(), Bytes::from(json.to_owned()))
                     .await?
                     .await?;
             }
