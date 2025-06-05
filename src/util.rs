@@ -162,7 +162,7 @@ mod tests {
     use serde_yaml::Value;
 
     #[test]
-    fn test_no_placeholders<'a>() {
+    fn test_no_placeholders() {
         let input = "Hello world";
         let args = Value::Null;
         let list_values = vec![];
