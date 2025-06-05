@@ -48,14 +48,13 @@ nest! {
                 // Handler
                 pub paths: Option<Vec<
                     #[derive(Default, Clone, Deserialize)]
-                    pub struct NatsHandlerPaths {
+                    pub struct NatsHandlerPaths<'b> {
                         pub from: String,
                         pub regex: Vec<String>,
                         pub to: Vec<String>,
                         pub args: Option<Value>,
-                        #[serde(default = "default_queue")]
-                        pub queue: String,
-                    }>>,
+                        pub queue: Option<CowString<'b>>,
+                    } ||<'c>>>,
             } ||<'a>,
 
         // econ
@@ -97,10 +96,6 @@ nest! {
 
         pub args: Option<Value>,
     }
-}
-
-fn default_queue() -> String {
-    "handler_{{task_count}}".to_string()
 }
 
 fn default_ping_interval() -> u64 {

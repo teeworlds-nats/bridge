@@ -1,22 +1,23 @@
 mod handlers;
 pub mod model;
 
+use std::borrow::Cow;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::model::{Config, NatsHandlerPaths};
-use crate::util::{get_and_format_caps, merge_yaml_values};
+use crate::util::{convert, format_single, get_and_format_caps, merge_yaml_values};
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace};
 use regex::Regex;
 use tokio::io;
 
-async fn handler(
+async fn handler<'a>(
     nats: Client,
     jetstream: Context,
-    path: NatsHandlerPaths,
+    path: NatsHandlerPaths<'a>,
     task_count: usize,
 ) -> Result<(), async_nats::Error> {
     let re: Vec<Regex> = path
@@ -26,9 +27,12 @@ async fn handler(
         .collect();
     let args = path.args.unwrap_or_default();
 
-    let sub_path = path
-        .queue
-        .replace("{{task_count}}", &task_count.to_string());
+    let sub_path = format_single(
+        path.queue,
+        &args,
+        &[task_count.to_string()],
+        Cow::Owned("handler_{{0}}".to_string()),
+    );
     info!(
         "Handler started from {} to {:?}, regex.len: {}, job_id: {}, sub_path: {}",
         path.from,
@@ -37,7 +41,7 @@ async fn handler(
         task_count,
         sub_path
     );
-    let mut subscriber = nats.queue_subscribe(path.from, sub_path.clone()).await?;
+    let mut subscriber = nats.queue_subscribe(path.from, sub_path.clone().to_string()).await?;
     while let Some(message) = subscriber.next().await {
         debug!(
             "message received from {}, length {}, job_id: {}, sub_path: {}",
@@ -74,7 +78,7 @@ async fn handler(
     Ok(())
 }
 
-pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> io::Result<()> {
+pub async fn main(config: Config<'static>, nats: Client, jetstream: Context) -> io::Result<()> {
     let mut tasks = vec![];
 
     for (task_count, path) in config
