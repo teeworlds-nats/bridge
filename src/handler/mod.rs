@@ -47,14 +47,9 @@ async fn handler<'a>(
             "message received from {}, length {}, job_id: {}, sub_path: {}",
             message.subject, message.length, task_count, sub_path
         );
-        let msg: MsgBridge = match std::str::from_utf8(&message.payload) {
-            Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {err}");
-            }),
-            Err(err) => {
-                warn!("Error converting bytes to string: {err}");
-                continue;
-            }
+        let msg = match convert::<MsgBridge>(&message.payload) {
+            Some(msg) => msg,
+            None => continue,
         };
         let new_args = merge_yaml_values(&msg.args, &args);
 

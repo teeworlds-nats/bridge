@@ -38,14 +38,9 @@ pub async fn process_messages<'a>(
             "Message received from {}, length {}",
             message.subject, message.length
         );
-        let msg: MsgHandler = match std::str::from_utf8(&message.payload) {
-            Ok(json_string) => serde_json::from_str(json_string).unwrap_or_else(|err| {
-                panic!("Error deserializing JSON: {err}");
-            }),
-            Err(err) => {
-                warn!("Error converting bytes to string: {err}");
-                continue;
-            }
+        let msg = match convert::<MsgHandler>(&message.payload) {
+            Some(msg) => msg,
+            None => continue,
         };
         let result = msg.value.join(" ");
         if let Err(err) = tx.send(result).await {
