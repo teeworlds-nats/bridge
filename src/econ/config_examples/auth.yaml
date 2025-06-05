@@ -11,7 +11,4 @@ nats:
 econ:
   host: 127.0.0.1:8303
   password: econ_password
-args:
-  server_name: Fng
 
-  message_thread_id: "1379" # str only, telegram

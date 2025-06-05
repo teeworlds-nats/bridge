@@ -8,4 +8,4 @@ econ:
 
 args:
   server_name: Fng
-  message_thread_id: "1379" # str only, telegram
+  message_thread_id: 1379 # int only, telegram

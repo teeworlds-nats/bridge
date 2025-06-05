@@ -4,14 +4,10 @@ nats:
   from:
     - tw.econ.write.{{message_thread_id}}
     - tw.econ.sync
-  # Remove or disable if you want the distribution to be disabled
   # https://docs.nats.io/nats-concepts/core-nats/queue
-  queue: false
+  queue: "econ.reader" # default
+  # queue: "" # disable
 
 econ:
   host: 127.0.0.1:8303
   password: econ_password
-
-args:
-  server_name: Fng
-  message_thread_id: "1379" # str only, telegram
