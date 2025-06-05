@@ -4,6 +4,7 @@ nats:
 
 bot:
   token: TOKEN
-  chat_id: -123
 
-args: {} # combines with other "args"
+# combines with other "args"
+args:
+  chat_id: -123
