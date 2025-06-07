@@ -14,7 +14,7 @@ use teloxide::RequestError::RetryAfter;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 
-pub async fn main<'a>(config_path: String) -> anyhow::Result<()> {
+pub async fn main(config_path: String) -> anyhow::Result<()> {
     let config = ConfigBots::load_yaml(&config_path).await?;
     config.set_logging();
 
