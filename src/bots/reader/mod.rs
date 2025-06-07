@@ -16,11 +16,13 @@ use tokio::sync::mpsc;
 use tokio::time::sleep;
 
 pub async fn main<'a>(config: Config<'a>, nats: Client, _jetstream: Context) -> anyhow::Result<()> {
-    let (tx, mut rx) = mpsc::channel::<(CowString, i64, i32)>(64);
+    let (tx, mut rx) = mpsc::channel::<(CowString, i64, i32)>(2048);
 
     let args = config.args.clone().unwrap_or_default();
     let config_bot = config.bot.clone().unwrap();
-    let bot = config_bot.get_bot().await;
+
+    let bots = config_bot.get_bots().await;
+    let mut bot_cycle = bots.iter().cycle();
 
     let reads_paths = format(
         config.nats.from,
@@ -46,43 +48,44 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, _jetstream: Context) -> 
     }
 
     while let Some((text, chat_id, thread_id)) = rx.recv().await {
-        // Валидация параметров с более информативным логом
         if chat_id == -1 {
             warn!("Skipping message send attempt - invalid chat_id (-1), text: '{text}'",);
             continue;
         }
 
-        let msg = {
-            let builder = bot.send_message(ChatId(chat_id), text.to_string());
-            if thread_id != -1 {
-                builder.message_thread_id(ThreadId(MessageId(thread_id)))
-            } else {
-                builder
-            }
-        };
+        if let Some(bot) = bot_cycle.next() {
+            let msg = {
+                let builder = bot.send_message(ChatId(chat_id), text.to_string());
+                if thread_id != -1 {
+                    builder.message_thread_id(ThreadId(MessageId(thread_id)))
+                } else {
+                    builder
+                }
+            };
 
-        match msg.await {
-            Ok(_) => {
-                trace!("Message successfully sent to chat {chat_id}");
+            match msg.await {
+                Ok(_) => {
+                    trace!("Message successfully sent to chat {chat_id}");
+                }
+                Err(err) => match err {
+                    RetryAfter(seconds) => {
+                        info!("sleeping for {seconds} seconds");
+                        sleep(seconds.duration()).await;
+                    }
+                    _ => {
+                        error!(
+                            "Failed to send message to chat {} (thread: {}): {:?}",
+                            chat_id,
+                            if thread_id != -1 {
+                                thread_id.to_string()
+                            } else {
+                                "none".into()
+                            },
+                            err
+                        );
+                    }
+                },
             }
-            Err(err) => match err {
-                RetryAfter(seconds) => {
-                    info!("sleeping for {seconds} seconds");
-                    sleep(seconds.duration()).await;
-                }
-                _ => {
-                    error!(
-                        "Failed to send message to chat {} (thread: {}): {:?}",
-                        chat_id,
-                        if thread_id != -1 {
-                            thread_id.to_string()
-                        } else {
-                            "none".into()
-                        },
-                        err
-                    );
-                }
-            },
         }
     }
     Ok(())
