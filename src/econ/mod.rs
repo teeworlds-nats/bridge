@@ -2,17 +2,22 @@ mod handlers;
 pub mod model;
 
 use crate::econ::handlers::{check_status, msg_reader, process_messages, task};
-use crate::model::{Config, CowString, MsgError};
+use crate::econ::model::ConfigEcon;
+use crate::model::{BaseConfig, CowString, MsgError};
 use crate::util::{format, format_single};
-use async_nats::jetstream::Context;
 use async_nats::subject::ToSubject;
-use async_nats::Client;
 use bytes::Bytes;
 use log::{error, info, warn};
 use std::borrow::Cow;
 use tokio::sync::mpsc;
 
-pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> std::io::Result<()> {
+pub async fn main<'a>(config_path: String) -> anyhow::Result<()> {
+    let config = ConfigEcon::load_yaml(&config_path).await?;
+    config.set_logging();
+
+    let nats = config.connect_nats().await.unwrap();
+    let jetstream = async_nats::jetstream::new(nats.clone());
+
     let (tx, mut rx) = mpsc::channel(64);
     let econ_reader = config
         .econ_connect()
@@ -25,7 +30,6 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
     info!("econ connected");
 
     let conf_nats = config.nats.clone();
-    let conf_econ = config.econ.unwrap();
     let args = config.args.clone().unwrap_or_default();
 
     let read_path: Vec<CowString> = format(
@@ -70,13 +74,13 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
             nats.clone(),
         ));
     }
-    for _task in conf_econ.tasks.clone() {
+    for _task in config.econ.tasks.clone() {
         tokio::spawn(task(tx.clone(), _task.command, _task.delay));
     }
     tokio::spawn(check_status(
         tx.clone(),
-        conf_econ.check_message.clone(),
-        conf_econ.check_status_econ_sec,
+        config.econ.check_message.clone(),
+        config.econ.check_status_econ_sec,
     ));
 
     while let Some(message) = rx.recv().await {
@@ -90,10 +94,10 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
 
                     info!(
                         "Trying to reconnect to the server: {}/{}",
-                        attempts, conf_econ.reconnect.max_attempts
+                        attempts, config.econ.reconnect.max_attempts
                     );
-                    if attempts < conf_econ.reconnect.max_attempts {
-                        match conf_econ.econ_connect(Some(&args)).await {
+                    if attempts < config.econ.reconnect.max_attempts {
+                        match config.econ.econ_connect(Some(&args)).await {
                             Ok(result) => {
                                 econ_write = result;
                                 break;
@@ -102,7 +106,7 @@ pub async fn main<'a>(config: Config<'a>, nats: Client, jetstream: Context) -> s
                                 error!("Error econ_connect: {connect_err}");
                                 attempts += 1;
                                 tokio::time::sleep(std::time::Duration::from_secs(
-                                    conf_econ.reconnect.sleep,
+                                    config.econ.reconnect.sleep,
                                 ))
                                 .await;
                             }

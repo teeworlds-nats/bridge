@@ -1,11 +1,10 @@
 mod handlers;
 mod model;
 
+use crate::bots::model::ConfigBots;
 use crate::bots::reader::handlers::message_handler;
-use crate::model::{Config, CowString};
+use crate::model::{BaseConfig, CowString};
 use crate::util::{format, format_single};
-use async_nats::jetstream::Context;
-use async_nats::Client;
 use log::{error, info, trace, warn};
 use std::borrow::Cow;
 use teloxide::payloads::SendMessageSetters;
@@ -15,7 +14,11 @@ use teloxide::RequestError::RetryAfter;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 
-pub async fn main<'a>(config: Config<'a>, nats: Client, _jetstream: Context) -> anyhow::Result<()> {
+pub async fn main<'a>(config_path: String) -> anyhow::Result<()> {
+    let config = ConfigBots::load_yaml(&config_path).await?;
+    config.set_logging();
+
+    let nats = config.connect_nats().await.unwrap();
     let (tx, mut rx) = mpsc::channel::<(CowString, i64, i32)>(2048);
 
     let args = config.args.clone().unwrap_or_default();

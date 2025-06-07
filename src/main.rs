@@ -1,4 +1,3 @@
-use crate::model::Config;
 use clap::{Parser, Subcommand};
 use errors::ConfigError;
 use signal_hook::consts::TERM_SIGNALS;
@@ -38,9 +37,6 @@ enum Actions {
 async fn main() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
-    let config = Config::load_yaml(&cli.config).await?;
-    config.set_logging();
-
     let term_now = Arc::new(AtomicBool::new(false));
     for sig in TERM_SIGNALS {
         flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
@@ -54,21 +50,18 @@ async fn main() -> Result<(), ConfigError> {
         exit(1);
     });
 
-    let nc = config.connect_nats().await.unwrap();
-    let js = async_nats::jetstream::new(nc.clone());
-
     match &cli.action {
         Actions::Econ => {
-            econ::main(config, nc, js).await.ok();
+            econ::main(cli.config).await.ok();
         }
         Actions::Handler => {
-            handler::main(config, nc, js).await.ok();
+            handler::main(cli.config).await.ok();
         }
         Actions::BotReader => {
-            bots::reader::main(config, nc, js).await.ok();
+            bots::reader::main(cli.config).await.ok();
         }
         Actions::BotWriter => {
-            // bots::writer::main(config, nc, js).await.ok();
+            // bots::writer::main().await.ok();
             panic!("NOT IMPELENTED")
         }
     }

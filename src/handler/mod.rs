@@ -3,21 +3,25 @@ pub mod model;
 
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
-use crate::model::{Config, NatsHandlerPaths};
+use crate::handler::model::{ConfigHandler, HandlerPaths};
+use crate::model::BaseConfig;
 use crate::util::{convert, format_single, get_and_format_caps, merge_yaml_values};
+use anyhow::Error;
 use async_nats::jetstream::Context;
 use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info, trace};
 use regex::Regex;
+use serde_yaml::Value;
 use std::borrow::Cow;
 use tokio::io;
 
 async fn handler<'a>(
     nats: Client,
     jetstream: Context,
-    path: NatsHandlerPaths<'a>,
+    path: HandlerPaths<'a>,
+    main_args: Value,
     task_count: usize,
 ) -> Result<(), async_nats::Error> {
     let re: Vec<Regex> = path
@@ -25,7 +29,7 @@ async fn handler<'a>(
         .iter()
         .filter_map(|r| Regex::new(r).ok())
         .collect();
-    let args = path.args.unwrap_or_default();
+    let args = merge_yaml_values(&main_args, &path.args.unwrap_or_default());
 
     let sub_path = format_single(
         path.queue,
@@ -75,18 +79,29 @@ async fn handler<'a>(
     Ok(())
 }
 
-pub async fn main(config: Config<'static>, nats: Client, jetstream: Context) -> io::Result<()> {
+pub async fn main(config_path: String) -> anyhow::Result<()> {
+    let config = ConfigHandler::load_yaml(&config_path).await?;
+    config.set_logging();
+
+    let nats = config.connect_nats().await.unwrap();
+    let jetstream = async_nats::jetstream::new(nats.clone());
+
+    let args = config.args.clone().unwrap_or_default();
     let mut tasks = vec![];
 
     for (task_count, path) in config
-        .nats
-        .clone()
         .paths
         .expect("config.nats.paths expect")
         .into_iter()
         .enumerate()
     {
-        let task = tokio::spawn(handler(nats.clone(), jetstream.clone(), path, task_count));
+        let task = tokio::spawn(handler(
+            nats.clone(),
+            jetstream.clone(),
+            path,
+            args.clone(),
+            task_count,
+        ));
         tasks.push(task);
     }
 
@@ -97,11 +112,11 @@ pub async fn main(config: Config<'static>, nats: Client, jetstream: Context) -> 
             Ok(Ok(())) => {}
             Ok(Err(e)) => {
                 error!("Task failed: {e:?}");
-                return Err(io::Error::other("One of the tasks failed"));
+                return Err(Error::from(io::Error::other("One of the tasks failed")));
             }
             Err(e) => {
                 error!("Task panicked: {e:?}");
-                return Err(io::Error::other("One of the tasks panicked"));
+                return Err(Error::from(io::Error::other("One of the tasks panicked")));
             }
         }
     }
