@@ -151,6 +151,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         }
                         let mut pending = state.pending_messages.lock().await;
                         pending.push(message.clone());
+                        if pending.len() >= 100 {
+                            panic!("Could not connect to the server and accumulated a large queue time to do panic!");
+                        }
 
                         let send_msg = MsgError {
                             text: message.clone(),
