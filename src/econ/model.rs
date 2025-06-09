@@ -48,11 +48,9 @@ nest! {
                     }>,
                 #[serde(default)]
                 pub reconnect:
-                    #[derive(Default, Clone, Deserialize)]
+                    #[derive(Clone, Deserialize)]
                     pub struct ReconnectConfig {
-                        #[serde(default = "default_max_attempts")]
                         pub max_attempts: i64,
-                        #[serde(default = "default_sleep")]
                         pub sleep: u64,
                     },
             },
@@ -109,20 +107,22 @@ impl EconConfig {
     }
 }
 
+
+impl Default for ReconnectConfig {
+    fn default() -> Self {
+        Self {
+            max_attempts: 10,
+            sleep: 5,
+        }
+    }
+}
+
 fn default_check_status_econ_sec() -> u64 {
     5
 }
 
 fn default_tasks_delay_sec() -> u64 {
     60
-}
-
-fn default_max_attempts() -> i64 {
-    10
-}
-
-fn default_sleep() -> u64 {
-    5
 }
 
 fn default_auth_message() -> String {
