@@ -107,7 +107,6 @@ impl EconConfig {
     }
 }
 
-
 impl Default for ReconnectConfig {
     fn default() -> Self {
         Self {
