@@ -102,11 +102,10 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         }
 
         if should_buffer {
-            if message == config.econ.check_message {
-                continue;
+            if !(message == config.econ.check_message) {
+                let mut pending = state.pending_messages.lock().await;
+                pending.push(message);
             }
-            let mut pending = state.pending_messages.lock().await;
-            pending.push(message);
             continue;
         }
 
@@ -147,7 +146,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                     } else {
                         info!("Max reconnect attempts reached. Giving up.");
                         if message == config.econ.check_message {
-                            continue;
+                            break;
                         }
                         let mut pending = state.pending_messages.lock().await;
                         pending.push(message.clone());
