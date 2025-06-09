@@ -1,4 +1,4 @@
-use crate::econ::model::MsgBridge;
+use crate::econ::model::{ConnectionState, MsgBridge};
 use crate::handler::model::MsgHandler;
 use crate::model::CowString;
 use crate::util::convert;
@@ -10,10 +10,33 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
+
+pub async fn process_pending_messages(state: Arc<ConnectionState>, tx: Sender<String>) {
+    loop {
+        let messages = {
+            let mut pending = state.pending_messages.lock().await;
+            if pending.is_empty() {
+                None
+            } else {
+                let messages = pending.drain(..).collect::<Vec<_>>();
+                Some(messages)
+            }
+        };
+
+        if let Some(messages) = messages {
+            if let Err(err) = tx.send(messages.join("\n")).await {
+                error!("tx.send error: {err}");
+            }
+        }
+
+        sleep(Duration::from_secs(10)).await;
+    }
+}
 
 pub async fn process_messages<'a>(
     tx: Sender<String>,

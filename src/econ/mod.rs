@@ -1,14 +1,17 @@
 mod handlers;
 pub mod model;
 
-use crate::econ::handlers::{check_status, msg_reader, process_messages, task};
-use crate::econ::model::ConfigEcon;
+use crate::econ::handlers::{
+    check_status, msg_reader, process_messages, process_pending_messages, task,
+};
+use crate::econ::model::{ConfigEcon, ConnectionState};
 use crate::model::{BaseConfig, CowString, MsgError};
 use crate::util::{format, format_single};
 use async_nats::subject::ToSubject;
 use bytes::Bytes;
 use log::{error, info, warn};
 use std::borrow::Cow;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub async fn main(config_path: String) -> anyhow::Result<()> {
@@ -19,6 +22,8 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let jetstream = async_nats::jetstream::new(nats.clone());
 
     let (tx, mut rx) = mpsc::channel(64);
+    let state = Arc::new(ConnectionState::default());
+
     let econ_reader = config
         .econ_connect()
         .await
@@ -60,6 +65,8 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         Cow::Owned("econ.reader".to_string()),
     );
 
+    let state_clone = Arc::clone(&state);
+    tokio::spawn(process_pending_messages(state_clone, tx.clone()));
     tokio::spawn(msg_reader(
         econ_reader,
         jetstream.clone(),
@@ -85,12 +92,31 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
 
     while let Some(message) = rx.recv().await {
         let mut attempts = 0;
+        let mut should_buffer = false;
+
+        {
+            let is_connecting = state.is_connecting.lock().await;
+            if *is_connecting {
+                should_buffer = true;
+            }
+        }
+
+        if should_buffer {
+            let mut pending = state.pending_messages.lock().await;
+            pending.push(message);
+            continue;
+        }
 
         loop {
             match econ_write.send_line(&message).await {
                 Ok(_) => break,
                 Err(err) => {
                     error!("Error send_line to econ: {err}");
+
+                    {
+                        let mut is_connecting = state.is_connecting.lock().await;
+                        *is_connecting = true;
+                    }
 
                     info!(
                         "Trying to reconnect to the server: {}/{}",
@@ -100,6 +126,10 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         match config.econ.econ_connect(Some(&args)).await {
                             Ok(result) => {
                                 econ_write = result;
+                                {
+                                    let mut is_connecting = state.is_connecting.lock().await;
+                                    *is_connecting = false;
+                                }
                                 break;
                             }
                             Err(connect_err) => {
@@ -113,6 +143,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         }
                     } else {
                         info!("Max reconnect attempts reached. Giving up.");
+                        let mut pending = state.pending_messages.lock().await;
+                        pending.push(message.clone());
+
                         let send_msg = MsgError {
                             text: message.clone(),
                             publish: errors.clone(),
@@ -134,6 +167,10 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                             .expect("Failed publish json(2)");
                         if let Err(send_err) = tx.send(message).await {
                             error!("Failed to send message back: {send_err}");
+                        }
+                        {
+                            let mut is_connecting = state.is_connecting.lock().await;
+                            *is_connecting = false;
                         }
                         break;
                     }

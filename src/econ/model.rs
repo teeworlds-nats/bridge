@@ -13,6 +13,14 @@ pub struct MsgBridge {
     pub args: Value,
 }
 
+use tokio::sync::Mutex;
+
+#[derive(Default, Debug)]
+pub struct ConnectionState {
+    pub is_connecting: Mutex<bool>,
+    pub pending_messages: Mutex<Vec<String>>,
+}
+
 nest! {
     #[derive(Default, Clone, Deserialize)]
     pub struct ConfigEcon<'a> {
