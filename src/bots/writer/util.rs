@@ -18,12 +18,12 @@ pub fn get_topic_name(msg: &Message) -> String {
     String::new()
 }
 
-pub fn formats(
+pub fn formats<'a>(
     formats: Vec<Format>,
     args: &Value,
     text: String,
     additional_text: String,
-) -> CowString {
+) -> CowString<'a> {
     let mut format_text = CowString::default();
     for format in formats {
         let temp_text = format_single(
