@@ -1,5 +1,5 @@
 nats:
-  server: 
+  server:
     - nats://nats:4222
 
 paths:

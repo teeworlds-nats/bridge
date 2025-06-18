@@ -1,6 +1,7 @@
 # Running NATS with JetStream in Kubernetes using Helm
 
 ## Prerequisites
+
 - Kubernetes cluster
 - Helm installed
 
@@ -34,7 +35,7 @@ metadata:
   name: tw
 spec:
   name: tw
-  subjects: ["tw.>"]
+  subjects: [ "tw.>" ]
   storage: memory
   maxMsgs: 1000
 ```
@@ -42,11 +43,13 @@ spec:
 ## 3. Deploy Bridge Components
 
 ### Create Namespace
+
 ```bash
 kubectl create namespace bridge
 ```
 
 ### Bridge ECON Configuration (bridge-econ.yaml)
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -86,19 +89,20 @@ spec:
         type: ddnet
     spec:
       containers:
-      - name: bridge
-        image: <IMAGE_HERE>
-        volumeMounts:
-        - name: config
-          mountPath: /tw/config.yaml
-          subPath: config.yaml
+        - name: bridge
+          image: <IMAGE_HERE>
+          volumeMounts:
+            - name: config
+              mountPath: /tw/config.yaml
+              subPath: config.yaml
       volumes:
-      - name: config
-        secret:
-          secretName: ddnet
+        - name: config
+          secret:
+            secretName: ddnet
 ```
 
 ### Bridge Handler Configuration (bridge-handler.yaml)
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -141,26 +145,28 @@ spec:
         type: handler
     spec:
       containers:
-      - name: handler
-        image: <IMAGE_HERE>
-        command:
-          - /tw/bridge
-          - handler
-        volumeMounts:
-        - name: config
-          mountPath: /tw/config.yaml
-          subPath: config.yaml
+        - name: handler
+          image: <IMAGE_HERE>
+          command:
+            - /tw/bridge
+            - handler
+          volumeMounts:
+            - name: config
+              mountPath: /tw/config.yaml
+              subPath: config.yaml
       volumes:
-      - name: config
-        secret:
-          secretName: handler
+        - name: config
+          secret:
+            secretName: handler
 ```
 
 ## 4. Apply Configurations
+
 ```bash
 kubectl apply -f bridge-econ.yaml
 kubectl apply -f bridge-handler.yaml
 ```
 
 ## Notes
+
 - Replace all placeholder values in angle brackets (< >) with actual values
