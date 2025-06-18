@@ -1,4 +1,5 @@
-use crate::model::{BaseConfig, CowString, NatsConfig};
+use crate::model::{BaseConfig, CowString};
+use crate::nats::NatsConfig;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -10,15 +11,16 @@ nest! {
         logging: Option<String>,
         pub nats: NatsConfig<'a>,
 
-        pub paths: Option<Vec<
+        pub paths: Vec<
             #[derive(Default, Clone, Deserialize)]
             pub struct HandlerPaths<'b> {
-                pub from: String,
+                pub from: CowString<'b>,
                 pub regex: Vec<String>,
-                pub to: Vec<String>,
-                pub args: Option<Value>,
+                pub to: Vec<CowString<'b>>,
+                #[serde(default)]
+                pub args: Value,
                 pub queue: Option<CowString<'b>>,
-            } ||<'a>>>,
+            } ||<'a>>,
 
         pub args: Option<Value>,
     }
@@ -39,4 +41,20 @@ pub struct MsgHandler {
     pub text: String,
     pub value: Vec<String>,
     pub args: JsonValue,
+}
+
+impl MsgHandler {
+    pub async fn get_json(value: Vec<String>, text: String, yaml_args: &Value) -> String {
+        let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
+            panic!("Transfer YamlValue to JsonValue Failed: {err}");
+        });
+        let send_msg = MsgHandler { value, text, args };
+
+        match serde_json::to_string_pretty(&send_msg) {
+            Ok(str) => str,
+            Err(err) => {
+                panic!("Json Serialize Error: {err}");
+            }
+        }
+    }
 }

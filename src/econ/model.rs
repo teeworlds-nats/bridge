@@ -1,4 +1,5 @@
-use crate::model::{BaseConfig, NatsConfig};
+use crate::model::{BaseConfig, CowString};
+use crate::nats::NatsConfig;
 use crate::util::get_and_format;
 use anyhow::anyhow;
 use nestify::nest;
@@ -13,12 +14,10 @@ pub struct MsgBridge {
     pub args: Value,
 }
 
-use tokio::sync::Mutex;
-
-#[derive(Default, Debug)]
-pub struct ConnectionState {
-    pub is_connecting: Mutex<bool>,
-    pub pending_messages: Mutex<Vec<String>>,
+impl MsgBridge {
+    pub fn json(self) -> serde_json::Result<String> {
+        serde_json::to_string_pretty(&self)
+    }
 }
 
 nest! {
@@ -34,10 +33,8 @@ nest! {
                 pub password: String,
                 #[serde(default = "default_auth_message")]
                 pub auth_message: String,
-                #[serde(default = "default_check_status_econ_sec")]
-                pub check_status_econ_sec: u64,
                 #[serde(default)]
-                pub check_message: String,
+                pub first_commands: Vec<CowString<'static>>,
                 #[serde(default)]
                 pub tasks: Vec<
                     #[derive(Default, Clone, Deserialize)]
@@ -110,14 +107,10 @@ impl EconConfig {
 impl Default for ReconnectConfig {
     fn default() -> Self {
         Self {
-            max_attempts: 10,
-            sleep: 5,
+            max_attempts: 20,
+            sleep: 10,
         }
     }
-}
-
-fn default_check_status_econ_sec() -> u64 {
-    5
 }
 
 fn default_tasks_delay_sec() -> u64 {

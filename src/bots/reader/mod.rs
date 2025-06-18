@@ -18,13 +18,12 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let config = ConfigBots::load_yaml(&config_path).await?;
     config.set_logging();
 
-    let nats = config.connect_nats().await.unwrap();
+    let nats = config.connect_nats().await?;
     let (tx, mut rx) = mpsc::channel::<(CowString, i64, i32)>(2048);
 
     let args = config.args.clone().unwrap_or_default();
-    let config_bot = config.bot.clone().unwrap();
 
-    let bots = config_bot.get_bots().await;
+    let bots = config.bot.get_bots().await;
     let mut bot_cycle = bots.iter().cycle();
 
     let reads_paths = format(

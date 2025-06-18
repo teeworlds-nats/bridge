@@ -6,7 +6,8 @@ nats:
     - "tw.DDnet.I.chat"
 
 bot:
-  token: TOKEN
+  token:
+    - TOKEN
 
 # combines with other "args"
 args:

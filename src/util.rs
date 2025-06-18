@@ -1,4 +1,5 @@
 use crate::model::CowString;
+use crate::value::ValueExt;
 use lazy_static::lazy_static;
 use log::warn;
 use regex::{Captures, Regex};
@@ -27,6 +28,27 @@ where
         .collect()
 }
 
+pub fn format_caps<'c, I>(
+    input: I,
+    args: &Value,
+    caps: Option<&Captures>,
+    default: Vec<CowString<'c>>,
+) -> Vec<CowString<'static>>
+where
+    I: Into<Option<Vec<CowString<'c>>>>,
+{
+    let list_values: Vec<String> = caps
+        .as_ref()
+        .map(|c| {
+            c.iter()
+                .filter_map(|cap| cap.map(|m| m.as_str().to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    format(input, args, &list_values, default)
+}
+
 pub fn format_single<'c>(
     input: Option<CowString<'c>>,
     args: &Value,
@@ -36,7 +58,7 @@ pub fn format_single<'c>(
     get_and_format(&input.unwrap_or(default), args, list_values)
 }
 
-pub fn get<T: FromStr>(args: &Value, index: &str, default: T) -> T
+pub fn get<T: FromStr, V: ValueExt>(args: &V, index: &str, default: T) -> T
 where
     T::Err: std::fmt::Debug,
 {
@@ -63,6 +85,7 @@ pub fn merge_yaml_values(original: &Value, new: &Value) -> Value {
 
             Value::Mapping(merged_map)
         }
+        (Value::Null, Value::Mapping(_)) => new.clone(),
         _ => original.clone(),
     }
 }
@@ -72,13 +95,17 @@ pub fn get_and_format(string: &str, args: &Value, list_values: &[String]) -> Cow
         return Cow::Owned(string.to_string());
     }
 
-    let mut new_args = args.clone();
+    let new_args = {
+        let mut new_args = args.clone();
 
-    let path_server_name = get(args, "path_server_name", "server_name".to_string());
-    let path_thread_id = get(args, "path_thread_id", "message_thread_id".to_string());
+        let path_server_name = get(args, "path_server_name", "server_name".to_string());
+        let path_thread_id = get(args, "path_thread_id", "message_thread_id".to_string());
 
-    new_args["server_name"] = Value::String(get(args, &path_server_name, "".to_string()));
-    new_args["message_thread_id"] = Value::from(get::<i64>(args, &path_thread_id, -1));
+        new_args["server_name"] = Value::String(get(args, &path_server_name, "".to_string()));
+        new_args["message_thread_id"] = Value::from(get::<i64, Value>(args, &path_thread_id, -1));
+
+        new_args
+    };
 
     Cow::Owned(
         RE.replace_all(string, |caps: &Captures| {
@@ -120,23 +147,6 @@ pub fn get_and_format(string: &str, args: &Value, list_values: &[String]) -> Cow
     )
 }
 
-pub fn get_and_format_caps<'h>(
-    string: &'h str,
-    args: &Value,
-    caps: Option<&Captures>,
-) -> CowString<'h> {
-    let list_values: Vec<String> = caps
-        .as_ref()
-        .map(|c| {
-            c.iter()
-                .filter_map(|cap| cap.map(|m| m.as_str().to_string()))
-                .collect()
-        })
-        .unwrap_or_default();
-
-    get_and_format(string, args, &list_values)
-}
-
 pub fn convert<T>(payload: &[u8]) -> Option<T>
 where
     T: serde::de::DeserializeOwned,
@@ -156,11 +166,69 @@ where
     }
 }
 
+pub fn escape_string(cow: CowString) -> CowString {
+    if cow.contains(['"', '\'', '\\']) {
+        let escaped = cow
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\'', "\\'");
+        Cow::Owned(escaped)
+    } else {
+        cow
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_yaml::Value;
 
+    // escape_sting
+    #[test]
+    fn test_no_escaping_needed() {
+        let input = CowString::Owned("normal string".to_string());
+        let result = escape_string(input);
+        assert_eq!(result, CowString::Owned("normal string".to_string()));
+    }
+
+    #[test]
+    fn test_escape_single_quotes() {
+        let input = CowString::Owned("text with 'quotes'".to_string());
+        let result = escape_string(input);
+        assert_eq!(result, CowString::Owned(r#"text with \'quotes\'"#.into()));
+    }
+
+    #[test]
+    fn test_escape_all_special_chars() {
+        let input = CowString::Owned(r#"mixed \ '" all"#.to_string());
+        let result = escape_string(input);
+        assert_eq!(result, CowString::Owned(r#"mixed \\ \'\" all"#.to_string()));
+    }
+
+    #[test]
+    fn test_empty_string() {
+        let input = CowString::Owned("".to_string());
+        let result = escape_string(input);
+        assert_eq!(result, CowString::Owned("".to_string()));
+    }
+
+    #[test]
+    fn test_owned_string_no_escape() {
+        let input = CowString::Owned("hello".into());
+        let result = escape_string(input);
+        assert!(matches!(result, Cow::Owned(_)));
+        assert_eq!(result.to_string(), "hello");
+    }
+
+    #[test]
+    fn test_owned_string_with_escape() {
+        let input = CowString::Owned(r#"hello"world"#.into());
+        let result = escape_string(input);
+        assert!(matches!(result, Cow::Owned(_)));
+        assert_eq!(result.to_string(), r#"hello\"world"#);
+    }
+
+    // get_and_format
     #[test]
     fn test_no_placeholders() {
         let input = "Hello world";

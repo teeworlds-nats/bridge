@@ -1,8 +1,7 @@
 use crate::bots::reader::model::MsgHandler;
 use crate::model::CowString;
+use crate::nats::Nats;
 use crate::util::{convert, get, get_and_format, merge_yaml_values};
-use async_nats::subject::ToSubject;
-use async_nats::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use regex::Regex;
@@ -15,19 +14,11 @@ pub async fn message_handler<'a>(
     subscriber_str: CowString<'a>,
     queue: CowString<'a>,
     args: Value,
-    nats: Client,
+    nats: Nats,
 ) -> Result<(), async_nats::Error> {
-    let mut subscriber = match nats
-        .queue_subscribe(subscriber_str.to_subject(), queue.into_owned())
-        .await
-    {
-        Ok(subscriber) => subscriber,
-        Err(err) => {
-            panic!("Failed to subscribe to \"{subscriber_str}\": {err}");
-        }
-    };
-
     info!("Subscribe to the channel: \"{subscriber_str}\"");
+    let mut subscriber = nats.subscriber(subscriber_str, queue).await;
+
     while let Some(message) = subscriber.next().await {
         debug!(
             "Message received from {}, length {}",
@@ -83,8 +74,13 @@ pub async fn message_handler<'a>(
                 }
             }
         };
-        let chat_id = get::<i64>(&new_args, "chat_id", -1);
-        let thread_id = get::<i32>(&new_args, "message_thread_id", -1);
+
+        let not_starts_with = get(&new_args, "not_starts_with", "".to_string());
+        if !not_starts_with.is_empty() && text.starts_with(&not_starts_with) {
+            continue;
+        }
+        let chat_id = get::<i64, Value>(&new_args, "chat_id", -1);
+        let thread_id = get::<i32, Value>(&new_args, "message_thread_id", -1);
         trace!("sent message to {chat_id}({thread_id}), {text}");
         tx.send((text, chat_id, thread_id)).await?;
     }

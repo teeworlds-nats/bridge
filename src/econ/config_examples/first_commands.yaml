@@ -1,0 +1,9 @@
+nats:
+  server:
+    - nats://nats:4222
+
+econ:
+  host: 127.0.0.1:8303
+  password: econ_password
+  first_commands:
+    - "say Greetings from ByFox"
