@@ -8,3 +8,5 @@ econ:
   tasks:
     - command: "status"
       delay: 10 # default: 60 sec
+    - command: "" # To check that the connection has not dropped
+      delay: 5

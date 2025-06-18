@@ -19,3 +19,4 @@ paths:
     args:
       message_text: "{{3}}"
       message_regex: "^\\d+:-?\\d+:([^:]+: .+)$"
+      not_starts_with: "***"

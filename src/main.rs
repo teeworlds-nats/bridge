@@ -1,5 +1,7 @@
+extern crate core;
+
 use clap::{Parser, Subcommand};
-use errors::ConfigError;
+use log::warn;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use std::process::exit;
@@ -13,7 +15,9 @@ mod econ;
 mod errors;
 mod handler;
 mod model;
+mod nats;
 mod util;
+mod value;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -25,7 +29,7 @@ struct Cli {
     action: Actions,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Actions {
     Econ,
     Handler,
@@ -34,7 +38,7 @@ enum Actions {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), ConfigError> {
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     let term_now = Arc::new(AtomicBool::new(false));
@@ -51,22 +55,14 @@ async fn main() -> Result<(), ConfigError> {
     });
 
     match &cli.action {
-        Actions::Econ => {
-            econ::main(cli.config).await.ok();
-        }
-        Actions::Handler => {
-            handler::main(cli.config).await.ok();
-        }
-        Actions::BotReader => {
-            bots::reader::main(cli.config).await.ok();
-        }
-        Actions::BotWriter => {
-            // bots::writer::main().await.ok();
-            panic!("NOT IMPELENTED")
-        }
+        Actions::Econ => econ::main(cli.config).await,
+        Actions::Handler => handler::main(cli.config).await,
+        Actions::BotReader => bots::reader::main(cli.config).await,
+        Actions::BotWriter => bots::writer::main(cli.config).await,
     }
+    .expect("Service operation error");
 
-    println!("The program ran into the end\nThis may be due to the fact that the connection has not been established");
+    warn!("The program ran into the end");
 
     Ok(())
 }

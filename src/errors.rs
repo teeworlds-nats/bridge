@@ -1,29 +1,62 @@
 use std::fmt;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum ConfigError {
-    Io(std::io::Error),
-    Yaml(serde_yaml::Error),
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    Yaml {
+        path: PathBuf,
+        source: serde_yaml::Error,
+    },
 }
 
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::Io(err) => write!(f, "I/O error: {err}"),
-            ConfigError::Yaml(err) => write!(f, "YAML error: {err}"),
+            ConfigError::Io { path, source } => {
+                write!(
+                    f,
+                    "Failed to access config file at '{}': {}",
+                    path.display(),
+                    source
+                )
+            }
+            ConfigError::Yaml { path, source } => {
+                write!(
+                    f,
+                    "Invalid YAML in config file '{}': {}",
+                    path.display(),
+                    source
+                )
+            }
         }
     }
 }
 
-impl std::error::Error for ConfigError {}
-impl From<std::io::Error> for ConfigError {
-    fn from(err: std::io::Error) -> ConfigError {
-        ConfigError::Io(err)
+impl std::error::Error for ConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ConfigError::Io { source, .. } => Some(source),
+            ConfigError::Yaml { source, .. } => Some(source),
+        }
     }
 }
 
-impl From<serde_yaml::Error> for ConfigError {
-    fn from(err: serde_yaml::Error) -> ConfigError {
-        ConfigError::Yaml(err)
+impl ConfigError {
+    pub fn io(path: impl Into<PathBuf>, source: std::io::Error) -> Self {
+        ConfigError::Io {
+            path: path.into(),
+            source,
+        }
+    }
+
+    pub fn yaml(path: impl Into<PathBuf>, source: serde_yaml::Error) -> Self {
+        ConfigError::Yaml {
+            path: path.into(),
+            source,
+        }
     }
 }

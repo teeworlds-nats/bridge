@@ -4,11 +4,10 @@ pub mod model;
 use crate::econ::model::MsgBridge;
 use crate::handler::handlers::chat_handler;
 use crate::handler::model::{ConfigHandler, HandlerPaths};
-use crate::model::BaseConfig;
-use crate::util::{convert, format_single, get_and_format_caps, merge_yaml_values};
+use crate::model::{BaseConfig, CowString};
+use crate::nats::Nats;
+use crate::util::{convert, format_caps, format_single, merge_yaml_values};
 use anyhow::Error;
-use async_nats::jetstream::Context;
-use async_nats::Client;
 use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info, trace};
@@ -18,8 +17,7 @@ use std::borrow::Cow;
 use tokio::io;
 
 async fn handler<'a>(
-    nats: Client,
-    jetstream: Context,
+    nats: Nats,
     path: HandlerPaths<'a>,
     main_args: Value,
     task_count: usize,
@@ -29,7 +27,7 @@ async fn handler<'a>(
         .iter()
         .filter_map(|r| Regex::new(r).ok())
         .collect();
-    let args = merge_yaml_values(&main_args, &path.args.unwrap_or_default());
+    let args = merge_yaml_values(&main_args, &path.args);
 
     let sub_path = format_single(
         path.queue,
@@ -45,9 +43,7 @@ async fn handler<'a>(
         task_count,
         sub_path
     );
-    let mut subscriber = nats
-        .queue_subscribe(path.from, sub_path.clone().to_string())
-        .await?;
+    let mut subscriber = nats.subscriber(path.from, sub_path.clone()).await;
     while let Some(message) = subscriber.next().await {
         debug!(
             "message received from {}, length {}, job_id: {}, sub_path: {}",
@@ -63,14 +59,11 @@ async fn handler<'a>(
             if let Some(caps) = regex.captures(&msg.text) {
                 let json = chat_handler(&caps, &new_args).await;
 
-                let write_paths: Vec<String> = path
-                    .to
-                    .iter()
-                    .map(|x| get_and_format_caps(x, &new_args, Some(&caps)).to_string())
-                    .collect();
+                let write_paths: Vec<CowString<'a>> =
+                    format_caps(path.to.clone(), &new_args, Some(&caps), Vec::new());
                 trace!("send {json} to {write_paths:?}:");
                 for path in write_paths {
-                    jetstream.publish(path, json.clone().into()).await?;
+                    nats.publish(path, json.to_owned()).await.ok();
                 }
             }
         }
@@ -83,25 +76,12 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let config = ConfigHandler::load_yaml(&config_path).await?;
     config.set_logging();
 
-    let nats = config.connect_nats().await.unwrap();
-    let jetstream = async_nats::jetstream::new(nats.clone());
-
+    let nats = config.connect_nats().await?;
     let args = config.args.clone().unwrap_or_default();
     let mut tasks = vec![];
 
-    for (task_count, path) in config
-        .paths
-        .expect("config.nats.paths expect")
-        .into_iter()
-        .enumerate()
-    {
-        let task = tokio::spawn(handler(
-            nats.clone(),
-            jetstream.clone(),
-            path,
-            args.clone(),
-            task_count,
-        ));
+    for (task_count, path) in config.paths.into_iter().enumerate() {
+        let task = tokio::spawn(handler(nats.clone(), path, args.clone(), task_count));
         tasks.push(task);
     }
 
