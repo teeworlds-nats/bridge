@@ -1,12 +1,12 @@
 use crate::model::{BaseConfig, CowString};
 use crate::nats::NatsConfig;
-use crate::util::get_and_format;
 use anyhow::anyhow;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use tw_econ::Econ;
+use crate::format::format;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgBridge {
@@ -76,7 +76,7 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
 impl EconConfig {
     pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
         let args = args.unwrap_or(&Value::Null);
-        get_and_format(&self.host, args, &[])
+        format::get_and_format(&self.host, args, &[])
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()

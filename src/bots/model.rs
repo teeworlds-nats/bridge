@@ -8,7 +8,7 @@ use teloxide::prelude::Requester;
 use teloxide::Bot as TBot;
 
 #[derive(Default, Debug, Clone, Deserialize)]
-pub struct Format {
+pub struct FormatConfig {
     pub format: CowString<'static>,
     #[serde(default)]
     pub escape: bool,
@@ -29,11 +29,11 @@ nest! {
         #[serde(default = "default_format")]
         pub format:
             #[derive(Default, Debug, Clone, Deserialize)]
-            pub struct Formats {
+            pub struct FormatsConfigs {
                 #[serde(default = "default_formats_text")]
-                pub text: Vec<Format>,
+                pub text: Vec<FormatConfig>,
                 #[serde(default = "default_formats_reply")]
-                pub reply: Vec<Format>,
+                pub reply: Vec<FormatConfig>,
                 #[serde(default = "default_formats_media")]
                 pub media: String,
                 #[serde(default = "default_formats_sticker")]
@@ -75,8 +75,8 @@ impl BotConfig {
     }
 }
 
-fn default_format() -> Formats {
-    Formats {
+fn default_format() -> FormatsConfigs {
+    FormatsConfigs {
         text: default_formats_text(),
         reply: default_formats_reply(),
         media: default_formats_media(),
@@ -84,28 +84,28 @@ fn default_format() -> Formats {
     }
 }
 
-fn default_formats_text() -> Vec<Format> {
+fn default_formats_text() -> Vec<FormatConfig> {
     vec![
-        Format {
+        FormatConfig {
             format: CowString::Owned(String::from("{{2}}[{{from.username}}] {{0}}")),
             escape: true,
         },
-        Format {
+        FormatConfig {
             format: CowString::Owned(String::from("say \"{{1}}\"")),
             escape: false,
         },
     ]
 }
 
-fn default_formats_reply() -> Vec<Format> {
+fn default_formats_reply() -> Vec<FormatConfig> {
     vec![
-        Format {
+        FormatConfig {
             format: CowString::Owned(String::from(
                 "{{2}}[{{reply_to_message.message_id}}] [{{reply_to_message.from.username}}] {{0}}",
             )),
             escape: true,
         },
-        Format {
+        FormatConfig {
             format: CowString::Owned(String::from("say \"{{1}}\"")),
             escape: false,
         },

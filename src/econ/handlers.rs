@@ -2,7 +2,7 @@ use crate::econ::model::MsgBridge;
 use crate::handler::model::MsgHandler;
 use crate::model::CowString;
 use crate::nats::Nats;
-use crate::util::{convert, get};
+use crate::util::convert;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
@@ -10,6 +10,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
+use crate::args::Args;
 
 pub async fn process_messages<'a>(
     tx: Sender<String>,
@@ -26,7 +27,7 @@ pub async fn process_messages<'a>(
             message.subject, message.length
         );
         if let Some(msg) = convert::<MsgHandler>(&message.payload) {
-            if get(&msg.args, "econ_divide", false) {
+            if Args::get(&msg.args, "econ_divide", false) {
                 for result in msg.value {
                     if let Err(err) = tx.send(result).await {
                         error!("tx.send error: {err}");

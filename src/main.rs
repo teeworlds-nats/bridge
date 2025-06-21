@@ -18,6 +18,8 @@ mod model;
 mod nats;
 mod util;
 mod value;
+mod format;
+mod args;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

@@ -3,8 +3,8 @@ mod model;
 
 use crate::bots::model::ConfigBots;
 use crate::bots::reader::handlers::message_handler;
+use crate::format_values;
 use crate::model::{BaseConfig, CowString};
-use crate::util::{format, format_single};
 use log::{error, info, trace, warn};
 use std::borrow::Cow;
 use teloxide::payloads::SendMessageSetters;
@@ -26,17 +26,18 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let bots = config.bot.get_bots().await;
     let mut bot_cycle = bots.iter().cycle();
 
-    let reads_paths = format(
+    let reads_paths = format_values!(
         config.nats.from,
         &args,
         &[],
-        vec![Cow::Owned("tw.tg.*".to_string())],
+        vec![Cow::Owned("tw.tg.*".to_string())]
     );
-    let queue: CowString = format_single(
+    let queue: CowString = format_values!(
         config.nats.queue,
         &args,
         &[],
-        Cow::Owned("econ.reader".to_string()),
+        Cow::Owned("econ.reader".to_string());
+        single
     );
 
     for path in reads_paths {
