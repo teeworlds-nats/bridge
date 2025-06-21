@@ -34,8 +34,7 @@ async fn handler<'a>(
     let sub_path = format_values!(
         path.queue,
         &args,
-        &[task_count.to_string()],
-        CowString::Owned("handler_{{0}}".to_string());
+        &[task_count.to_string()];
         single
     );
     info!(

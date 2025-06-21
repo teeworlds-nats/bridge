@@ -19,7 +19,8 @@ nest! {
                 pub to: Vec<CowString<'b>>,
                 #[serde(default)]
                 pub args: Value,
-                pub queue: Option<CowString<'b>>,
+                #[serde(default = "default_paths_queue")]
+                pub queue: CowString<'b>,
             } ||<'a>>,
 
         pub args: Option<Value>,
@@ -57,4 +58,8 @@ impl MsgHandler {
             }
         }
     }
+}
+
+fn default_paths_queue() -> CowString<'static> {
+    CowString::Owned("handler_{{0}}".to_string())
 }
