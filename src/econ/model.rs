@@ -1,3 +1,4 @@
+use crate::format::format;
 use crate::model::{BaseConfig, CowString};
 use crate::nats::NatsConfig;
 use anyhow::anyhow;
@@ -6,7 +7,6 @@ use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use tw_econ::Econ;
-use crate::format::format;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgBridge {
@@ -85,22 +85,37 @@ impl EconConfig {
 
     pub async fn econ_connect(&self, args: Option<&Value>) -> anyhow::Result<Econ> {
         let mut econ = Econ::new();
+        let max_attempts = 3;
+        let mut connection_error: Option<anyhow::Error> = None;
 
-        match econ.connect(self.get_econ_addr(args)).await {
-            Ok(_) => {}
-            Err(err) => return Err(anyhow!("econ.connect, err: {}", err)),
-        };
-        econ.set_auth_message(self.auth_message.clone());
+        for attempt in 1..=max_attempts {
+            match econ.connect(self.get_econ_addr(args)).await {
+                Ok(_) => {
+                    econ.set_auth_message(self.auth_message.clone());
 
-        let authed = match econ.try_auth(&self.password).await {
-            Ok(result) => result,
-            Err(err) => return Err(anyhow!("econ.try_auth, err: {}", err)),
-        };
-        if !authed {
-            return Err(anyhow!("Econ client is not authorized"));
+                    match econ.try_auth(&self.password).await {
+                        Ok(true) => return Ok(econ),
+                        Ok(false) => return Err(anyhow!("Econ client is not authorized")),
+                        Err(err) => {
+                            connection_error = Some(anyhow!("econ.try_auth, err: {}", err));
+                        }
+                    }
+                }
+                Err(err) => {
+                    connection_error = Some(anyhow!(
+                        "Attempt {}: econ.connect failed, err: {}",
+                        attempt,
+                        err
+                    ));
+                }
+            };
+            if attempt < max_attempts {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
         }
 
-        Ok(econ)
+        Err(connection_error
+            .unwrap_or_else(|| anyhow!("Failed to connect after {} attempts", max_attempts)))
     }
 }
 
