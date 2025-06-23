@@ -88,7 +88,7 @@ jobs:
       tag: ${{ steps.get_baseline_hash.outputs.tag }}
 
   cargo-semver-checks:
-    needs: [check-if-lib, get-baseline]
+    needs: [ check-if-lib, get-baseline ]
     if: ${{ needs.check-if-lib.outputs.is_lib == 'true' && needs.get-baseline.outputs.baseline != '' && (inputs.bump-version != '' || inputs.release_type != 'none') }}
     runs-on: ubuntu-latest
     steps:
