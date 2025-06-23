@@ -61,7 +61,7 @@ async fn handler<'a>(
             if let Some(caps) = regex.captures(&msg.text) {
                 let json = chat_handler(&caps, &new_args).await;
 
-                let write_paths: Vec<CowString<'a>> = format::format(
+                let write_paths: Vec<CowString<'a>> = format::format_values(
                     path.to.clone(),
                     &new_args,
                     &captures_to_list(&caps),

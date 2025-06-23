@@ -61,7 +61,7 @@ async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), Reque
         args
     };
 
-    let write_paths = format::format(
+    let write_paths = format::format_values(
         cfg.send_paths,
         &args,
         &[],

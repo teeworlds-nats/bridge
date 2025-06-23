@@ -61,12 +61,12 @@ pub mod format {
     macro_rules! format_values {
         // basic: (input, args, list_values)
         ($input:expr, $args:expr, $list:expr $(,)?) => {
-            $crate::format::format::format($input, $args, $list, Vec::new())
+            $crate::format::format::format_values($input, $args, $list, Vec::new())
         };
 
         // with_default: (input, args, list_values, default_vec)
         ($input:expr, $args:expr, $list:expr, $default:expr) => {
-            $crate::format::format::format($input, $args, $list, $default)
+            $crate::format::format::format_values($input, $args, $list, $default)
         };
 
         // single: (input, args, list_values)
@@ -80,7 +80,7 @@ pub mod format {
         }};
     }
 
-    pub fn format<'c, I>(
+    pub fn format_values<'c, I>(
         input: I,
         args: &Value,
         list_values: &[String],
