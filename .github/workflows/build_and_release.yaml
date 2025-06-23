@@ -18,10 +18,13 @@ on:
           - patch
           - minor
           - major
+        description: ""
       publish:
         type: boolean
+        description: ""
       overwrite_tag:
         type: boolean
+        description: ""
   workflow_call:
     inputs:
       version:
