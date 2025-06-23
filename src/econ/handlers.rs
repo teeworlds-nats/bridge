@@ -1,3 +1,4 @@
+use crate::args::Args;
 use crate::econ::model::MsgBridge;
 use crate::handler::model::MsgHandler;
 use crate::model::CowString;
@@ -10,7 +11,6 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use tw_econ::Econ;
-use crate::args::Args;
 
 pub async fn process_messages<'a>(
     tx: Sender<String>,

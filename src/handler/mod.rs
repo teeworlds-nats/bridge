@@ -4,6 +4,7 @@ pub mod model;
 use crate::args::Args;
 use crate::econ::model::MsgBridge;
 use crate::format::format;
+use crate::format_values;
 use crate::handler::handlers::chat_handler;
 use crate::handler::model::{ConfigHandler, HandlerPaths};
 use crate::model::{BaseConfig, CowString};
@@ -16,7 +17,6 @@ use log::{debug, error, info, trace};
 use regex::Regex;
 use serde_yaml::Value;
 use tokio::io;
-use crate::format_values;
 
 async fn handler<'a>(
     nats: Nats,

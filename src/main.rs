@@ -10,16 +10,16 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
+mod args;
 mod bots;
 mod econ;
 mod errors;
+mod format;
 mod handler;
 mod model;
 mod nats;
 mod util;
 mod value;
-mod format;
-mod args;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

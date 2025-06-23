@@ -1,9 +1,11 @@
 mod model;
 mod util;
 
+use crate::args::Args;
 use crate::bots::model::{ConfigBots, FormatsConfigs};
 use crate::bots::writer::model::ConfigParameters;
 use crate::bots::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
+use crate::format::format;
 use crate::handler::model::MsgHandler;
 use crate::model::{BaseConfig, CowString, EmojiCollection};
 use log::{debug, warn};
@@ -11,8 +13,6 @@ use serde_yaml::{to_value, Value};
 use std::borrow::Cow;
 use teloxide::prelude::*;
 use teloxide::RequestError;
-use crate::args::Args;
-use crate::format::format;
 
 fn msg_format<'a>(
     msg: &Message,
@@ -49,7 +49,8 @@ fn msg_format<'a>(
 
 async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), RequestError> {
     let args = {
-        let mut args = Args::merge_yaml_values(&to_value(msg.clone()).unwrap_or_default(), &cfg.args);
+        let mut args =
+            Args::merge_yaml_values(&to_value(msg.clone()).unwrap_or_default(), &cfg.args);
         args["message_thread_id"] = Value::String(
             msg.thread_id
                 .map_or_else(|| "-1".to_string(), |id| id.to_string()),

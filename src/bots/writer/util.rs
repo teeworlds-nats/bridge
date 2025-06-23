@@ -1,10 +1,10 @@
 use crate::bots::model::FormatConfig;
+use crate::format_values;
 use crate::model::CowString;
 use crate::util::escape_string;
 use serde_yaml::Value;
 use teloxide::prelude::Message;
 use teloxide::types::{MessageCommon, MessageKind};
-use crate::format_values;
 
 pub fn get_topic_name(msg: &Message) -> String {
     if let MessageKind::Common(MessageCommon {
