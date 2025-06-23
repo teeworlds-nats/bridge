@@ -3,13 +3,13 @@ pub mod model;
 
 use crate::econ::handlers::{msg_reader, process_messages, task};
 use crate::econ::model::ConfigEcon;
+use crate::format_values;
 use crate::model::{BaseConfig, CowString};
 use log::{debug, error, info, warn};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use crate::format_values;
 
 pub async fn main(config_path: String) -> anyhow::Result<()> {
     let config = ConfigEcon::load_yaml(&config_path).await?;
@@ -71,7 +71,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
             queue.clone(),
         ));
     }
-    for _task in config.econ.tasks.clone() {
+    let mut tasks = config.econ.tasks.clone();
+    tasks.reverse();
+    for _task in tasks {
         tokio::spawn(task(tx.clone(), _task.command, _task.delay));
     }
 
