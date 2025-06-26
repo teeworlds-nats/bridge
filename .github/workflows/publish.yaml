@@ -4,6 +4,10 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   check-secret-existence:
     runs-on: ubuntu-latest
