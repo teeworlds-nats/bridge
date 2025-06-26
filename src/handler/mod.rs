@@ -3,11 +3,11 @@ pub mod model;
 
 use crate::args::Args;
 use crate::econ::model::MsgBridge;
-use crate::format::format;
+use crate::format::formatting;
 use crate::format_values;
 use crate::handler::handlers::chat_handler;
 use crate::handler::model::{ConfigHandler, HandlerPaths};
-use crate::model::{BaseConfig, CowString};
+use crate::model::{BaseConfig, CowStr};
 use crate::nats::Nats;
 use crate::util::{captures_to_list, convert};
 use anyhow::Error;
@@ -61,7 +61,7 @@ async fn handler<'a>(
             if let Some(caps) = regex.captures(&msg.text) {
                 let json = chat_handler(&caps, &new_args).await;
 
-                let write_paths: Vec<CowString<'a>> = format::format_values(
+                let write_paths: Vec<CowStr<'a>> = formatting::format_values(
                     path.to.clone(),
                     &new_args,
                     &captures_to_list(&caps),

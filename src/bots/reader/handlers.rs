@@ -1,20 +1,19 @@
 use crate::args::Args;
 use crate::bots::reader::model::MsgHandler;
-use crate::format::format;
-use crate::model::CowString;
+use crate::format::formatting;
+use crate::model::CowStr;
 use crate::nats::Nats;
 use crate::util::convert;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use regex::Regex;
 use serde_yaml::Value;
-use std::borrow::Cow;
 use tokio::sync::mpsc::Sender;
 
 pub async fn message_handler<'a>(
-    tx: Sender<(CowString<'static>, i64, i32)>,
-    subscriber_str: CowString<'a>,
-    queue: CowString<'a>,
+    tx: Sender<(CowStr<'static>, i64, i32)>,
+    subscriber_str: CowStr<'a>,
+    queue: CowStr<'a>,
     args: Value,
     nats: Nats,
 ) -> Result<(), async_nats::Error> {
@@ -35,44 +34,46 @@ pub async fn message_handler<'a>(
         let message_text = Args::get(&new_args, "message_text", "{{0}}: {{1}}".to_string());
         let message_regex = Args::get(&new_args, "message_regex", "".to_string());
 
-        let text = if message_regex.is_empty() {
-            format::get_and_format(&message_text, &new_args, &msg.value)
-        } else {
-            let regex = match Regex::new(&message_regex) {
-                Ok(r) => r,
-                Err(e) => {
-                    error!("Failed to compile regex: \"{message_regex}\", err: {e}");
-                    continue;
-                }
-            };
+        let text = {
+            if message_regex.is_empty() {
+                formatting::get_and_format(&message_text, &new_args, &msg.value)
+            } else {
+                let regex = match Regex::new(&message_regex) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        error!("Failed to compile regex: \"{message_regex}\", err: {e}");
+                        continue;
+                    }
+                };
 
-            let default_text = format::get_and_format(&message_text, &new_args, &msg.value);
-            trace!("Applying regex \"{message_regex}\" to \"{default_text}\"");
+                let default_text = formatting::get_and_format(&message_text, &new_args, &msg.value);
+                trace!("Applying regex \"{message_regex}\" to \"{default_text}\"");
 
-            match regex.captures(&default_text) {
-                Some(caps) => {
-                    let full_match = caps.get(0).map(|m| m.as_str()).unwrap_or("");
+                match regex.captures(&default_text) {
+                    Some(caps) => {
+                        let full_match = caps.get(0).map(|m| m.as_str()).unwrap_or("");
 
-                    let other_groups: String = caps
-                        .iter()
-                        .skip(1)
-                        .flatten()
-                        .map(|m| m.as_str())
-                        .collect::<Vec<&str>>()
-                        .join(" ");
+                        let other_groups: String = caps
+                            .iter()
+                            .skip(1)
+                            .flatten()
+                            .map(|m| m.as_str())
+                            .collect::<Vec<&str>>()
+                            .join(" ");
 
-                    if full_match.is_empty() {
-                        warn!(
+                        if full_match.is_empty() {
+                            warn!(
                             "Empty full match for regex '{message_regex}' in {default_text} (captured groups: {other_groups})",
                         );
-                        default_text
-                    } else {
-                        Cow::Owned(other_groups.to_owned())
+                            default_text
+                        } else {
+                            CowStr::Owned(other_groups)
+                        }
                     }
-                }
-                None => {
-                    warn!("No matches found for regex '{message_regex}' in {default_text}",);
-                    default_text
+                    None => {
+                        warn!("No matches found for regex '{message_regex}' in {default_text}",);
+                        default_text
+                    }
                 }
             }
         };

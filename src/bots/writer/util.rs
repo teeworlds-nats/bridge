@@ -1,6 +1,6 @@
 use crate::bots::model::FormatConfig;
 use crate::format_values;
-use crate::model::CowString;
+use crate::model::CowStr;
 use crate::util::escape_string;
 use serde_yaml::Value;
 use teloxide::prelude::Message;
@@ -24,8 +24,8 @@ pub fn formats<'a>(
     args: &Value,
     text: String,
     additional_text: String,
-) -> CowString<'a> {
-    let mut format_text = CowString::default();
+) -> CowStr<'a> {
+    let mut format_text = CowStr::default();
     for format in formats {
         let temp_text = format_values!(
             Some(format.format),
@@ -35,7 +35,7 @@ pub fn formats<'a>(
                 format_text.to_string(),
                 additional_text.clone(),
             ],
-            CowString::default();
+            CowStr::default();
             single
         );
         format_text = if format.escape {

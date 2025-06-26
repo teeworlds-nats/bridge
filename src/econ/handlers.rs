@@ -1,7 +1,7 @@
 use crate::args::Args;
 use crate::econ::model::MsgBridge;
 use crate::handler::model::MsgHandler;
-use crate::model::CowString;
+use crate::model::CowStr;
 use crate::nats::Nats;
 use crate::util::convert;
 use futures_util::StreamExt;
@@ -15,8 +15,8 @@ use tw_econ::Econ;
 pub async fn process_messages<'a>(
     tx: Sender<String>,
     nats: Nats,
-    subscriber_str: CowString<'a>,
-    queue: CowString<'a>,
+    subscriber_str: CowStr<'a>,
+    queue: CowStr<'a>,
 ) {
     info!("Subscribe to the channel: {subscriber_str}");
     let mut subscriber = nats.subscriber(subscriber_str, queue).await;
@@ -46,7 +46,7 @@ pub async fn process_messages<'a>(
 pub async fn msg_reader(
     mut econ: Econ,
     nats: Nats,
-    nats_path: Vec<CowString<'static>>,
+    nats_path: Vec<CowStr<'static>>,
     args: Value,
 ) -> anyhow::Result<()> {
     loop {

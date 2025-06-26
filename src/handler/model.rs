@@ -1,4 +1,4 @@
-use crate::model::{BaseConfig, CowString};
+use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
@@ -14,13 +14,13 @@ nest! {
         pub paths: Vec<
             #[derive(Default, Clone, Deserialize)]
             pub struct HandlerPaths<'b> {
-                pub from: CowString<'b>,
+                pub from: CowStr<'b>,
                 pub regex: Vec<String>,
-                pub to: Vec<CowString<'b>>,
+                pub to: Vec<CowStr<'b>>,
                 #[serde(default)]
                 pub args: Value,
                 #[serde(default = "default_paths_queue")]
-                pub queue: CowString<'b>,
+                pub queue: CowStr<'b>,
             } ||<'a>>,
 
         pub args: Option<Value>,
@@ -60,6 +60,6 @@ impl MsgHandler {
     }
 }
 
-fn default_paths_queue() -> CowString<'static> {
-    CowString::Owned("handler_{{0}}".to_string())
+fn default_paths_queue() -> CowStr<'static> {
+    CowStr::Borrowed("handler_{{0}}")
 }

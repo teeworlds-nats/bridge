@@ -1,5 +1,5 @@
-use crate::format::format;
-use crate::model::{BaseConfig, CowString};
+use crate::format::formatting;
+use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use anyhow::anyhow;
 use nestify::nest;
@@ -34,7 +34,7 @@ nest! {
                 #[serde(default = "default_auth_message")]
                 pub auth_message: String,
                 #[serde(default)]
-                pub first_commands: Vec<CowString<'static>>,
+                pub first_commands: Vec<CowStr<'static>>,
                 #[serde(default)]
                 pub tasks: Vec<
                     #[derive(Default, Clone, Deserialize)]
@@ -76,7 +76,7 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
 impl EconConfig {
     pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
         let args = args.unwrap_or(&Value::Null);
-        format::get_and_format(&self.host, args, &[])
+        formatting::get_and_format(&self.host, args, &[])
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()

@@ -4,9 +4,8 @@ pub mod model;
 use crate::econ::handlers::{msg_reader, process_messages, task};
 use crate::econ::model::ConfigEcon;
 use crate::format_values;
-use crate::model::{BaseConfig, CowString};
+use crate::model::{BaseConfig, CowStr};
 use log::{debug, error, info, warn};
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -25,32 +24,32 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     info!("econ connected");
 
     let args = config.args.clone().unwrap_or_default();
-    let first_commands: Vec<CowString> =
+    let first_commands: Vec<CowStr> =
         format_values!(config.econ.first_commands.clone(), &args, &[], Vec::new());
     for command in first_commands {
         econ_write.send_line(command.to_string()).await?;
     }
 
-    let read_path: Vec<CowString> = format_values!(
+    let read_path: Vec<CowStr> = format_values!(
         config.nats.from.clone(),
         &args,
         &[],
         vec![
-            Cow::Owned("tw.econ.write.{{message_thread_id}}".to_string()),
-            Cow::Owned("tw.econ.moderator".to_string()),
+            CowStr::Borrowed("tw.econ.write.{{message_thread_id}}"),
+            CowStr::Borrowed("tw.econ.moderator"),
         ]
     );
-    let write_path: Vec<CowString> = format_values!(
+    let write_path: Vec<CowStr> = format_values!(
         config.nats.to.clone(),
         &args,
         &[],
-        vec![Cow::Owned("tw.econ.read.{{message_thread_id}}".to_string())]
+        vec![CowStr::Borrowed("tw.econ.read.{{message_thread_id}}")]
     );
-    let queue: CowString = format_values!(
+    let queue: CowStr = format_values!(
         config.nats.queue.clone(),
         &args,
         &[],
-        Cow::Owned("econ.reader".to_string());
+        CowStr::Borrowed("econ.reader");
         single
     );
 

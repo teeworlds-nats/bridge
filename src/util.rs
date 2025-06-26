@@ -1,4 +1,4 @@
-use crate::model::CowString;
+use crate::model::CowStr;
 use log::warn;
 use regex::Captures;
 use std::borrow::Cow;
@@ -22,7 +22,7 @@ where
     }
 }
 
-pub fn escape_string(cow: CowString) -> CowString {
+pub fn escape_string(cow: CowStr) -> CowStr {
     if cow.contains(['"', '\'', '\\']) {
         let escaped = cow
             .replace('\\', "\\\\")
@@ -46,35 +46,35 @@ mod tests {
 
     #[test]
     fn test_no_escaping_needed() {
-        let input = CowString::Owned("normal string".to_string());
+        let input = CowStr::Owned("normal string".to_string());
         let result = escape_string(input);
-        assert_eq!(result, CowString::Owned("normal string".to_string()));
+        assert_eq!(result, CowStr::Owned("normal string".to_string()));
     }
 
     #[test]
     fn test_escape_single_quotes() {
-        let input = CowString::Owned("text with 'quotes'".to_string());
+        let input = CowStr::Owned("text with 'quotes'".to_string());
         let result = escape_string(input);
-        assert_eq!(result, CowString::Owned(r#"text with \'quotes\'"#.into()));
+        assert_eq!(result, CowStr::Owned(r#"text with \'quotes\'"#.into()));
     }
 
     #[test]
     fn test_escape_all_special_chars() {
-        let input = CowString::Owned(r#"mixed \ '" all"#.to_string());
+        let input = CowStr::Owned(r#"mixed \ '" all"#.to_string());
         let result = escape_string(input);
-        assert_eq!(result, CowString::Owned(r#"mixed \\ \'\" all"#.to_string()));
+        assert_eq!(result, CowStr::Owned(r#"mixed \\ \'\" all"#.to_string()));
     }
 
     #[test]
     fn test_empty_string() {
-        let input = CowString::Owned("".to_string());
+        let input = CowStr::Owned("".to_string());
         let result = escape_string(input);
-        assert_eq!(result, CowString::Owned("".to_string()));
+        assert_eq!(result, CowStr::Owned("".to_string()));
     }
 
     #[test]
     fn test_owned_string_no_escape() {
-        let input = CowString::Owned("hello".into());
+        let input = CowStr::Owned("hello".into());
         let result = escape_string(input);
         assert!(matches!(result, Cow::Owned(_)));
         assert_eq!(result.to_string(), "hello");
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_owned_string_with_escape() {
-        let input = CowString::Owned(r#"hello"world"#.into());
+        let input = CowStr::Owned(r#"hello"world"#.into());
         let result = escape_string(input);
         assert!(matches!(result, Cow::Owned(_)));
         assert_eq!(result.to_string(), r#"hello\"world"#);

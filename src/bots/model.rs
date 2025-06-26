@@ -1,4 +1,4 @@
-use crate::model::{BaseConfig, CowString};
+use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use log::info;
 use nestify::nest;
@@ -9,7 +9,7 @@ use teloxide::Bot as TBot;
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct FormatConfig {
-    pub format: CowString<'static>,
+    pub format: CowStr<'static>,
     #[serde(default)]
     pub escape: bool,
 }
@@ -87,11 +87,11 @@ fn default_format() -> FormatsConfigs {
 fn default_formats_text() -> Vec<FormatConfig> {
     vec![
         FormatConfig {
-            format: CowString::Owned(String::from("{{2}}[{{from.username}}] {{0}}")),
+            format: CowStr::Owned(String::from("{{2}}[{{from.username}}] {{0}}")),
             escape: true,
         },
         FormatConfig {
-            format: CowString::Owned(String::from("say \"{{1}}\"")),
+            format: CowStr::Owned(String::from("say \"{{1}}\"")),
             escape: false,
         },
     ]
@@ -100,13 +100,13 @@ fn default_formats_text() -> Vec<FormatConfig> {
 fn default_formats_reply() -> Vec<FormatConfig> {
     vec![
         FormatConfig {
-            format: CowString::Owned(String::from(
+            format: CowStr::Owned(String::from(
                 "{{2}}[{{reply_to_message.message_id}}] [{{reply_to_message.from.username}}] {{0}}",
             )),
             escape: true,
         },
         FormatConfig {
-            format: CowString::Owned(String::from("say \"{{1}}\"")),
+            format: CowStr::Owned(String::from("say \"{{1}}\"")),
             escape: false,
         },
     ]

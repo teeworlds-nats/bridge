@@ -5,10 +5,10 @@ lazy_static! {
     static ref RE: Regex = Regex::new(r"\{\{([^\}]+)\}\}").unwrap();
 }
 
-pub mod format {
+pub mod formatting {
     use crate::args::Args;
     use crate::format::RE;
-    use crate::model::CowString;
+    use crate::model::CowStr;
     use regex::Captures;
     use serde_yaml::Value;
 
@@ -61,22 +61,22 @@ pub mod format {
     macro_rules! format_values {
         // basic: (input, args, list_values)
         ($input:expr, $args:expr, $list:expr $(,)?) => {
-            $crate::format::format::format_values($input, $args, $list, Vec::new())
+            $crate::format::formatting::format_values($input, $args, $list, Vec::new())
         };
 
         // with_default: (input, args, list_values, default_vec)
         ($input:expr, $args:expr, $list:expr, $default:expr) => {
-            $crate::format::format::format_values($input, $args, $list, $default)
+            $crate::format::formatting::format_values($input, $args, $list, $default)
         };
 
         // single: (input, args, list_values)
         ($input:expr, $args:expr, $list:expr; single) => {{
-            $crate::format::format::get_and_format(&$input, $args, $list)
+            $crate::format::formatting::get_and_format(&$input, $args, $list)
         }};
 
         // single with default: (input, args, list_values, default)
         ($input:expr, $args:expr, $list:expr, $default:expr; single) => {{
-            $crate::format::format::get_and_format(&$input.unwrap_or($default), $args, $list)
+            $crate::format::formatting::get_and_format(&$input.unwrap_or($default), $args, $list)
         }};
     }
 
@@ -84,10 +84,10 @@ pub mod format {
         input: I,
         args: &Value,
         list_values: &[String],
-        default: Vec<CowString<'c>>,
-    ) -> Vec<CowString<'static>>
+        default: Vec<CowStr<'c>>,
+    ) -> Vec<CowStr<'static>>
     where
-        I: Into<Option<Vec<CowString<'c>>>>,
+        I: Into<Option<Vec<CowStr<'c>>>>,
     {
         input
             .into()
@@ -97,13 +97,9 @@ pub mod format {
             .collect()
     }
 
-    pub fn get_and_format(
-        string: &str,
-        args: &Value,
-        list_values: &[String],
-    ) -> CowString<'static> {
+    pub fn get_and_format(string: &str, args: &Value, list_values: &[String]) -> CowStr<'static> {
         if !string.contains("{{") {
-            return CowString::Owned(string.to_string());
+            return CowStr::Owned(string.to_string());
         }
 
         let new_args = {
@@ -120,7 +116,7 @@ pub mod format {
             new_args
         };
 
-        CowString::Owned(
+        CowStr::Owned(
             RE.replace_all(string, |caps: &Captures| {
                 let key = &caps[1];
 
@@ -163,8 +159,8 @@ pub mod format {
 
 #[cfg(test)]
 mod tests {
-    use crate::format::format;
-    use crate::model::CowString;
+    use crate::format::formatting;
+    use crate::model::CowStr;
     use serde_yaml::Value;
 
     #[test]
@@ -173,8 +169,8 @@ mod tests {
         let args = Value::Null;
         let list_values = vec![];
 
-        let result = format::get_and_format(input, &args, &list_values);
-        assert_eq!(result, CowString::Owned("Hello world".to_string()));
+        let result = formatting::get_and_format(input, &args, &list_values);
+        assert_eq!(result, CowStr::Owned("Hello world".to_string()));
     }
 
     #[test]
@@ -190,8 +186,8 @@ mod tests {
         });
         let list_values = vec![];
 
-        let result = format::get_and_format(input, &args, &list_values);
-        assert_eq!(result, CowString::Owned("Hello Alice".to_string()));
+        let result = formatting::get_and_format(input, &args, &list_values);
+        assert_eq!(result, CowStr::Owned("Hello Alice".to_string()));
     }
 
     #[test]
@@ -211,8 +207,8 @@ mod tests {
         });
         let list_values = vec![];
 
-        let result = format::get_and_format(input, &args, &list_values);
-        assert_eq!(result, CowString::Owned("Hello, Bob!".to_string()));
+        let result = formatting::get_and_format(input, &args, &list_values);
+        assert_eq!(result, CowStr::Owned("Hello, Bob!".to_string()));
     }
 
     #[test]
@@ -221,8 +217,8 @@ mod tests {
         let args = Value::Null;
         let list_values = vec![];
 
-        let result = format::get_and_format(input, &args, &list_values);
-        assert_eq!(result, CowString::Owned("Hello ".to_string()));
+        let result = formatting::get_and_format(input, &args, &list_values);
+        assert_eq!(result, CowStr::Owned("Hello ".to_string()));
     }
 
     #[test]
@@ -231,10 +227,10 @@ mod tests {
         let args = Value::Null;
         let list_values = vec!["Apple".to_string(), "Banana".to_string()];
 
-        let result = format::get_and_format(input, &args, &list_values);
+        let result = formatting::get_and_format(input, &args, &list_values);
         assert_eq!(
             result,
-            CowString::Owned("Item 0: Apple, Item 1: Banana".to_string())
+            CowStr::Owned("Item 0: Apple, Item 1: Banana".to_string())
         );
     }
 
@@ -258,7 +254,7 @@ mod tests {
                 map
             })
         };
-        let result = format::get_and_format(input, &args, &[]);
-        assert_eq!(result, CowString::Owned("Bob (789)".to_string()));
+        let result = formatting::get_and_format(input, &args, &[]);
+        assert_eq!(result, CowStr::Owned("Bob (789)".to_string()));
     }
 }

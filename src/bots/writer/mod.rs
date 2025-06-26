@@ -5,12 +5,11 @@ use crate::args::Args;
 use crate::bots::model::{ConfigBots, FormatsConfigs};
 use crate::bots::writer::model::ConfigParameters;
 use crate::bots::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
-use crate::format::format;
+use crate::format::formatting;
 use crate::handler::model::MsgHandler;
-use crate::model::{BaseConfig, CowString, EmojiCollection};
+use crate::model::{BaseConfig, CowStr, EmojiCollection};
 use log::{debug, warn};
 use serde_yaml::{to_value, Value};
-use std::borrow::Cow;
 use teloxide::prelude::*;
 use teloxide::RequestError;
 
@@ -19,7 +18,7 @@ fn msg_format<'a>(
     args: &'a Value,
     fr: FormatsConfigs,
     reply: bool,
-) -> Option<CowString<'a>> {
+) -> Option<CowStr<'a>> {
     let format = if reply { fr.reply } else { fr.text };
 
     if let Some(sticker) = msg.sticker() {
@@ -61,11 +60,11 @@ async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), Reque
         args
     };
 
-    let write_paths = format::format_values(
+    let write_paths = formatting::format_values(
         cfg.send_paths,
         &args,
         &[],
-        vec![Cow::Owned("tw.tg.*".to_string())],
+        vec![CowStr::Borrowed("tw.tg.*")],
     );
 
     let mut texts = Vec::new();
@@ -122,8 +121,8 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     config.set_logging();
 
     let nats = config.connect_nats().await?;
-    let send_paths = config.nats.to.unwrap_or(vec![CowString::Owned(
-        "tw.econ.write.{{message_thread_id}}".to_string(),
+    let send_paths = config.nats.to.unwrap_or(vec![CowStr::Borrowed(
+        "tw.econ.write.{{message_thread_id}}",
     )]);
     let emojis = EmojiCollection::from_file("emoji.txt").await?;
 
