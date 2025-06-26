@@ -79,13 +79,3 @@ pub async fn msg_reader(
         }
     }
 }
-
-pub async fn task(tx: Sender<String>, command: String, sleep_sec: u64) {
-    loop {
-        debug!("tasks: send message to econ, msg: \"{command}\" sleep: {sleep_sec}",);
-        tx.send(command.clone())
-            .await
-            .expect("tx.send error, task failed");
-        sleep(Duration::from_secs(sleep_sec)).await;
-    }
-}

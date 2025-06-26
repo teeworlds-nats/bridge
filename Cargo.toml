@@ -26,6 +26,9 @@ nestify = "0.3.3"
 teloxide = { version = "0.15.0", features = ["macros", "native-tls"] }
 anyhow = "1.0.98"
 lazy_static = "1.5.0"
+chrono = "0.4.41"
+rand = "0.8.5"
+cron = "0.15.0"
 
 [profile.release]
 strip = true

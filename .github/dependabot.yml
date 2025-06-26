@@ -25,6 +25,8 @@ updates:
           - "*"
         update-types:
           - "major"
+    ignore:
+      - dependency-name: "rand"
 
   - package-ecosystem: github-actions
     directory: /
@@ -34,3 +36,5 @@ updates:
       github-actions-updates:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "rand"

@@ -1,7 +1,8 @@
+mod enums;
 mod handlers;
 pub mod model;
 
-use crate::econ::handlers::{msg_reader, process_messages, task};
+use crate::econ::handlers::{msg_reader, process_messages};
 use crate::econ::model::ConfigEcon;
 use crate::format_values;
 use crate::model::{BaseConfig, CowStr};
@@ -70,19 +71,27 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
             queue.clone(),
         ));
     }
-    let mut tasks = config.econ.tasks.clone();
+    let mut tasks = config.econ.clone().tasks;
     tasks.reverse();
+
     for _task in tasks {
-        tokio::spawn(task(tx.clone(), _task.command, _task.delay));
+        let task_tx = tx.clone();
+        let mut task = _task.clone();
+        task.init_state();
+
+        tokio::spawn(async move {
+            task.execute(&task_tx).await;
+        });
     }
 
     let mut pending_messages = Vec::new();
     let mut reconnect_attempt = 0;
+
     let tasks_messages: HashSet<String> = config
         .econ
         .tasks
         .iter()
-        .map(|x| x.command.clone())
+        .flat_map(|task| task.get_all_commands())
         .collect();
 
     while let Some(message) = rx.recv().await {

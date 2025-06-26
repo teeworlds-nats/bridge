@@ -1,11 +1,15 @@
+use crate::econ::enums::Task;
 use crate::format::formatting;
 use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use anyhow::anyhow;
+use log::warn;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tw_econ::Econ;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,13 +40,7 @@ nest! {
                 #[serde(default)]
                 pub first_commands: Vec<CowStr<'static>>,
                 #[serde(default)]
-                pub tasks: Vec<
-                    #[derive(Default, Clone, Deserialize)]
-                    pub struct EconTasksConfig {
-                        pub command: String,
-                        #[serde(default = "default_tasks_delay_sec")]
-                        pub delay: u64
-                    }>,
+                pub tasks: Vec<Task>,
                 #[serde(default)]
                 pub reconnect:
                     #[derive(Clone, Deserialize)]
@@ -128,8 +126,32 @@ impl Default for ReconnectConfig {
     }
 }
 
-fn default_tasks_delay_sec() -> u64 {
-    60
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineState {
+    #[serde(skip_serializing, skip_deserializing)]
+    pub index: Arc<Mutex<usize>>,
+    pub commands: Vec<String>,
+}
+
+impl LineState {
+    pub fn new(commands: Vec<String>) -> Self {
+        Self {
+            index: Arc::new(Mutex::new(0)),
+            commands,
+        }
+    }
+
+    pub async fn get_next_command(&self) -> String {
+        if self.commands.is_empty() {
+            warn!("get_next_command: No commands available");
+            return String::default();
+        }
+
+        let mut index = self.index.lock().await;
+        let cmd = self.commands[*index % self.commands.len()].clone();
+        *index += 1;
+        cmd
+    }
 }
 
 fn default_auth_message() -> String {
