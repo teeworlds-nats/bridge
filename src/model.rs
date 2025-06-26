@@ -14,7 +14,7 @@ use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 use tw_econ::Econ;
 
-pub type CowString<'a> = Cow<'a, String>;
+pub type CowStr<'a> = Cow<'a, str>;
 
 pub trait BaseConfig: DeserializeOwned + Sized {
     fn nats_config(&self) -> &NatsConfig<'_>;
@@ -74,7 +74,7 @@ pub trait BaseConfig: DeserializeOwned + Sized {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgError<'a> {
     pub text: String,
-    pub publish: CowString<'a>,
+    pub publish: CowStr<'a>,
 }
 
 #[derive(Debug, Clone)]
@@ -122,7 +122,7 @@ impl EmojiCollection {
         Some((symbol, name))
     }
 
-    pub fn replace_symbols_with_names<'a>(&self, text: CowString<'a>) -> CowString<'a> {
+    pub fn replace_symbols_with_names<'a>(&self, text: CowStr<'a>) -> CowStr<'a> {
         let mut result = text.to_string();
 
         for emoji in &self.emojis {

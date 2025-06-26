@@ -3,10 +3,9 @@ mod model;
 
 use crate::bots::model::ConfigBots;
 use crate::bots::reader::handlers::message_handler;
-use crate::model::{BaseConfig, CowString};
-use crate::util::{format, format_single};
+use crate::format_values;
+use crate::model::{BaseConfig, CowStr};
 use log::{error, info, trace, warn};
-use std::borrow::Cow;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::*;
 use teloxide::types::{MessageId, ThreadId};
@@ -19,24 +18,25 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     config.set_logging();
 
     let nats = config.connect_nats().await?;
-    let (tx, mut rx) = mpsc::channel::<(CowString, i64, i32)>(2048);
+    let (tx, mut rx) = mpsc::channel::<(CowStr, i64, i32)>(2048);
 
     let args = config.args.clone().unwrap_or_default();
 
     let bots = config.bot.get_bots().await;
     let mut bot_cycle = bots.iter().cycle();
 
-    let reads_paths = format(
+    let reads_paths = format_values!(
         config.nats.from,
         &args,
         &[],
-        vec![Cow::Owned("tw.tg.*".to_string())],
+        vec![CowStr::Borrowed("tw.tg.*")]
     );
-    let queue: CowString = format_single(
+    let queue: CowStr = format_values!(
         config.nats.queue,
         &args,
         &[],
-        Cow::Owned("econ.reader".to_string()),
+        CowStr::Borrowed("econ.reader");
+        single
     );
 
     for path in reads_paths {

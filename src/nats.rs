@@ -1,4 +1,4 @@
-use crate::model::CowString;
+use crate::model::CowStr;
 use anyhow::anyhow;
 use async_nats::jetstream::publish::PublishAck;
 use async_nats::jetstream::Context;
@@ -25,9 +25,9 @@ pub struct NatsConfig<'a> {
     pub tls: bool,
 
     // Econ & Bots
-    pub from: Option<Vec<CowString<'a>>>,
-    pub to: Option<Vec<CowString<'a>>>,
-    pub queue: Option<CowString<'a>>,
+    pub from: Option<Vec<CowStr<'a>>>,
+    pub to: Option<Vec<CowStr<'a>>>,
+    pub queue: Option<CowStr<'a>>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,12 +42,12 @@ impl Nats {
         Self { nats, js }
     }
 
-    pub async fn subscriber<'a>(&self, patch: CowString<'a>, queue: CowString<'a>) -> Subscriber {
+    pub async fn subscriber<'a>(&self, patch: CowStr<'a>, queue: CowStr<'a>) -> Subscriber {
         match if queue.is_empty() {
-            self.nats.subscribe(patch.to_subject()).await
+            self.nats.subscribe(patch.to_string().to_subject()).await
         } else {
             self.nats
-                .queue_subscribe(patch.to_subject(), queue.to_string())
+                .queue_subscribe(patch.to_string().to_subject(), queue.to_string())
                 .await
         } {
             Ok(subscriber) => subscriber,
@@ -57,14 +57,10 @@ impl Nats {
         }
     }
 
-    pub async fn publish<'a>(
-        &self,
-        patch: CowString<'a>,
-        json: String,
-    ) -> anyhow::Result<PublishAck> {
+    pub async fn publish<'a>(&self, patch: CowStr<'a>, json: String) -> anyhow::Result<PublishAck> {
         let publish_future = self
             .js
-            .publish(patch.to_subject().clone(), Bytes::from(json))
+            .publish(patch.to_string().to_subject(), Bytes::from(json))
             .await
             .map_err(|e| {
                 error!("NATS publish failed [subject: {patch}]: {e}");

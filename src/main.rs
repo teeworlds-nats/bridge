@@ -10,9 +10,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
+mod args;
 mod bots;
 mod econ;
 mod errors;
+mod format;
 mod handler;
 mod model;
 mod nats;

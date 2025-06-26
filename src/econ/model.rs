@@ -1,11 +1,15 @@
-use crate::model::{BaseConfig, CowString};
+use crate::econ::enums::Task;
+use crate::format::formatting;
+use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
-use crate::util::get_and_format;
 use anyhow::anyhow;
+use log::warn;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tw_econ::Econ;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,15 +38,9 @@ nest! {
                 #[serde(default = "default_auth_message")]
                 pub auth_message: String,
                 #[serde(default)]
-                pub first_commands: Vec<CowString<'static>>,
+                pub first_commands: Vec<CowStr<'static>>,
                 #[serde(default)]
-                pub tasks: Vec<
-                    #[derive(Default, Clone, Deserialize)]
-                    pub struct EconTasksConfig {
-                        pub command: String,
-                        #[serde(default = "default_tasks_delay_sec")]
-                        pub delay: u64
-                    }>,
+                pub tasks: Vec<Task>,
                 #[serde(default)]
                 pub reconnect:
                     #[derive(Clone, Deserialize)]
@@ -76,7 +74,7 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
 impl EconConfig {
     pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
         let args = args.unwrap_or(&Value::Null);
-        get_and_format(&self.host, args, &[])
+        formatting::get_and_format(&self.host, args, &[])
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()
@@ -85,22 +83,37 @@ impl EconConfig {
 
     pub async fn econ_connect(&self, args: Option<&Value>) -> anyhow::Result<Econ> {
         let mut econ = Econ::new();
+        let max_attempts = 3;
+        let mut connection_error: Option<anyhow::Error> = None;
 
-        match econ.connect(self.get_econ_addr(args)).await {
-            Ok(_) => {}
-            Err(err) => return Err(anyhow!("econ.connect, err: {}", err)),
-        };
-        econ.set_auth_message(self.auth_message.clone());
+        for attempt in 1..=max_attempts {
+            match econ.connect(self.get_econ_addr(args)).await {
+                Ok(_) => {
+                    econ.set_auth_message(self.auth_message.clone());
 
-        let authed = match econ.try_auth(&self.password).await {
-            Ok(result) => result,
-            Err(err) => return Err(anyhow!("econ.try_auth, err: {}", err)),
-        };
-        if !authed {
-            return Err(anyhow!("Econ client is not authorized"));
+                    match econ.try_auth(&self.password).await {
+                        Ok(true) => return Ok(econ),
+                        Ok(false) => return Err(anyhow!("Econ client is not authorized")),
+                        Err(err) => {
+                            connection_error = Some(anyhow!("econ.try_auth, err: {}", err));
+                        }
+                    }
+                }
+                Err(err) => {
+                    connection_error = Some(anyhow!(
+                        "Attempt {}: econ.connect failed, err: {}",
+                        attempt,
+                        err
+                    ));
+                }
+            };
+            if attempt < max_attempts {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
         }
 
-        Ok(econ)
+        Err(connection_error
+            .unwrap_or_else(|| anyhow!("Failed to connect after {} attempts", max_attempts)))
     }
 }
 
@@ -113,8 +126,32 @@ impl Default for ReconnectConfig {
     }
 }
 
-fn default_tasks_delay_sec() -> u64 {
-    60
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineState {
+    #[serde(skip_serializing, skip_deserializing)]
+    pub index: Arc<Mutex<usize>>,
+    pub commands: Vec<String>,
+}
+
+impl LineState {
+    pub fn new(commands: Vec<String>) -> Self {
+        Self {
+            index: Arc::new(Mutex::new(0)),
+            commands,
+        }
+    }
+
+    pub async fn get_next_command(&self) -> String {
+        if self.commands.is_empty() {
+            warn!("get_next_command: No commands available");
+            return String::default();
+        }
+
+        let mut index = self.index.lock().await;
+        let cmd = self.commands[*index % self.commands.len()].clone();
+        *index += 1;
+        cmd
+    }
 }
 
 fn default_auth_message() -> String {

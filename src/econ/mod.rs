@@ -1,12 +1,12 @@
+mod enums;
 mod handlers;
 pub mod model;
 
-use crate::econ::handlers::{msg_reader, process_messages, task};
+use crate::econ::handlers::{msg_reader, process_messages};
 use crate::econ::model::ConfigEcon;
-use crate::model::{BaseConfig, CowString};
-use crate::util::{format, format_single};
+use crate::format_values;
+use crate::model::{BaseConfig, CowStr};
 use log::{debug, error, info, warn};
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -25,32 +25,33 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     info!("econ connected");
 
     let args = config.args.clone().unwrap_or_default();
-    let first_commands: Vec<CowString> =
-        format(config.econ.first_commands.clone(), &args, &[], Vec::new());
+    let first_commands: Vec<CowStr> =
+        format_values!(config.econ.first_commands.clone(), &args, &[], Vec::new());
     for command in first_commands {
         econ_write.send_line(command.to_string()).await?;
     }
 
-    let read_path: Vec<CowString> = format(
+    let read_path: Vec<CowStr> = format_values!(
         config.nats.from.clone(),
         &args,
         &[],
         vec![
-            Cow::Owned("tw.econ.write.{{message_thread_id}}".to_string()),
-            Cow::Owned("tw.econ.moderator".to_string()),
-        ],
+            CowStr::Borrowed("tw.econ.write.{{message_thread_id}}"),
+            CowStr::Borrowed("tw.econ.moderator"),
+        ]
     );
-    let write_path: Vec<CowString> = format(
+    let write_path: Vec<CowStr> = format_values!(
         config.nats.to.clone(),
         &args,
         &[],
-        vec![Cow::Owned("tw.econ.read.{{message_thread_id}}".to_string())],
+        vec![CowStr::Borrowed("tw.econ.read.{{message_thread_id}}")]
     );
-    let queue: CowString = format_single(
+    let queue: CowStr = format_values!(
         config.nats.queue.clone(),
         &args,
         &[],
-        Cow::Owned("econ.reader".to_string()),
+        CowStr::Borrowed("econ.reader");
+        single
     );
 
     let mut reader = tokio::spawn(msg_reader(
@@ -70,17 +71,27 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
             queue.clone(),
         ));
     }
-    for _task in config.econ.tasks.clone() {
-        tokio::spawn(task(tx.clone(), _task.command, _task.delay));
+    let mut tasks = config.econ.clone().tasks;
+    tasks.reverse();
+
+    for _task in tasks {
+        let task_tx = tx.clone();
+        let mut task = _task.clone();
+        task.init_state();
+
+        tokio::spawn(async move {
+            task.execute(&task_tx).await;
+        });
     }
 
     let mut pending_messages = Vec::new();
     let mut reconnect_attempt = 0;
+
     let tasks_messages: HashSet<String> = config
         .econ
         .tasks
         .iter()
-        .map(|x| x.command.clone())
+        .flat_map(|task| task.get_all_commands())
         .collect();
 
     while let Some(message) = rx.recv().await {

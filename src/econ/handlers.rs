@@ -1,8 +1,9 @@
+use crate::args::Args;
 use crate::econ::model::MsgBridge;
 use crate::handler::model::MsgHandler;
-use crate::model::CowString;
+use crate::model::CowStr;
 use crate::nats::Nats;
-use crate::util::{convert, get};
+use crate::util::convert;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
@@ -14,8 +15,8 @@ use tw_econ::Econ;
 pub async fn process_messages<'a>(
     tx: Sender<String>,
     nats: Nats,
-    subscriber_str: CowString<'a>,
-    queue: CowString<'a>,
+    subscriber_str: CowStr<'a>,
+    queue: CowStr<'a>,
 ) {
     info!("Subscribe to the channel: {subscriber_str}");
     let mut subscriber = nats.subscriber(subscriber_str, queue).await;
@@ -26,7 +27,7 @@ pub async fn process_messages<'a>(
             message.subject, message.length
         );
         if let Some(msg) = convert::<MsgHandler>(&message.payload) {
-            if get(&msg.args, "econ_divide", false) {
+            if Args::get(&msg.args, "econ_divide", false) {
                 for result in msg.value {
                     if let Err(err) = tx.send(result).await {
                         error!("tx.send error: {err}");
@@ -45,7 +46,7 @@ pub async fn process_messages<'a>(
 pub async fn msg_reader(
     mut econ: Econ,
     nats: Nats,
-    nats_path: Vec<CowString<'static>>,
+    nats_path: Vec<CowStr<'static>>,
     args: Value,
 ) -> anyhow::Result<()> {
     loop {
@@ -76,15 +77,5 @@ pub async fn msg_reader(
         for patch in nats_path.clone() {
             nats.publish(patch, json.to_owned()).await.ok();
         }
-    }
-}
-
-pub async fn task(tx: Sender<String>, command: String, sleep_sec: u64) {
-    loop {
-        debug!("tasks: send message to econ, msg: \"{command}\" sleep: {sleep_sec}",);
-        tx.send(command.clone())
-            .await
-            .expect("tx.send error, task failed");
-        sleep(Duration::from_secs(sleep_sec)).await;
     }
 }

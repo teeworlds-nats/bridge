@@ -1,5 +1,5 @@
-use crate::bots::model::Formats;
-use crate::model::{CowString, EmojiCollection};
+use crate::bots::model::FormatsConfigs;
+use crate::model::{CowStr, EmojiCollection};
 use crate::nats::Nats;
 use serde_yaml::Value;
 
@@ -7,7 +7,7 @@ use serde_yaml::Value;
 pub struct ConfigParameters {
     pub emojis: EmojiCollection,
     pub nats: Nats,
-    pub send_paths: Vec<CowString<'static>>,
-    pub formats: Formats,
+    pub send_paths: Vec<CowStr<'static>>,
+    pub formats: FormatsConfigs,
     pub args: Value,
 }
