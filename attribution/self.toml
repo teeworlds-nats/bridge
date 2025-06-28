@@ -1,0 +1,6 @@
+[self]
+name = "bridge"
+version = "0.2.0"
+license = "MIT"
+notices = ["Copyright (c) 2024 ByFox"]
+authors = ["ByFox"]
