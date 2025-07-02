@@ -2,9 +2,9 @@ mod model;
 mod util;
 
 use crate::args::Args;
-use crate::bots::model::{ConfigBots, FormatsConfigs};
-use crate::bots::writer::model::ConfigParameters;
-use crate::bots::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
+use crate::tg::model::{ConfigBots, FormatsConfigs};
+use crate::tg::writer::model::ConfigParameters;
+use crate::tg::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
 use crate::format::formatting;
 use crate::handler::model::MsgHandler;
 use crate::model::{BaseConfig, CowStr, EmojiCollection};
@@ -124,7 +124,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let send_paths = config.nats.to.unwrap_or(vec![CowStr::Borrowed(
         "tw.econ.write.{{message_thread_id}}",
     )]);
-    let emojis = EmojiCollection::from_file("emoji.txt").await?;
+    let emojis = EmojiCollection::new().await?;
 
     let parameters = ConfigParameters {
         emojis,

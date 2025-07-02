@@ -1,4 +1,4 @@
-use crate::bots::model::FormatsConfigs;
+use crate::tg::model::FormatsConfigs;
 use crate::model::{CowStr, EmojiCollection};
 use crate::nats::Nats;
 use serde_yaml::Value;

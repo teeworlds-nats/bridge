@@ -1,5 +1,5 @@
 use crate::args::Args;
-use crate::bots::reader::model::MsgHandler;
+use crate::tg::reader::model::MsgHandler;
 use crate::format::formatting;
 use crate::model::CowStr;
 use crate::nats::Nats;

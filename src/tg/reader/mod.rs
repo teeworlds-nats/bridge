@@ -1,8 +1,8 @@
 mod handlers;
 mod model;
 
-use crate::bots::model::ConfigBots;
-use crate::bots::reader::handlers::message_handler;
+use crate::tg::model::ConfigBots;
+use crate::tg::reader::handlers::message_handler;
 use crate::format_values;
 use crate::model::{BaseConfig, CowStr};
 use log::{error, info, trace, warn};
