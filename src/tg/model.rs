@@ -52,8 +52,8 @@ impl<'a> BaseConfig for ConfigBots<'a> {
     fn logging_config(&self) -> Option<String> {
         self.logging.clone()
     }
-    
-    async fn default_config() ->  &'static str {
+
+    async fn default_config() -> &'static str {
         include_str!("../default_config/tg.yaml")
     }
 }

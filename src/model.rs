@@ -125,7 +125,7 @@ impl EmojiCollection {
         let mut emojis = Vec::new();
 
         for line in EMOJIS.split("\n") {
-            if let Some((symbol, name)) = Self::parse_emoji_line(&line) {
+            if let Some((symbol, name)) = Self::parse_emoji_line(line) {
                 emojis.push(Emoji { symbol, name });
             }
         }

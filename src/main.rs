@@ -11,13 +11,13 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 mod args;
-mod tg;
 mod econ;
 mod errors;
 mod format;
 mod handler;
 mod model;
 mod nats;
+mod tg;
 mod util;
 mod value;
 
@@ -49,19 +49,11 @@ enum TgAction {
 
 #[derive(Subcommand, Debug)]
 enum Actions {
-    #[command(
-        about = "econ -> nats",
-        visible_alias = "r"
-    )]
+    #[command(about = "econ -> nats", visible_alias = "r")]
     Econ,
-    #[command(
-        about = "nats -> nats",
-        visible_alias = "h"
-    )]
+    #[command(about = "nats -> nats", visible_alias = "h")]
     Handler,
-    #[command(
-        about = "Sending-receiving messages via telegram bots",
-    )]
+    #[command(about = "Sending-receiving messages via telegram bots")]
     Tg {
         #[command(subcommand)]
         action: TgAction,

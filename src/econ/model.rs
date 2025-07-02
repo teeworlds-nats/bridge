@@ -63,7 +63,7 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
         self.logging.clone()
     }
 
-    async fn default_config() ->  &'static str {
+    async fn default_config() -> &'static str {
         include_str!("../default_config/econ.yaml")
     }
 

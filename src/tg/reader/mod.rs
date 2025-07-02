@@ -1,10 +1,10 @@
 mod handlers;
 mod model;
 
-use crate::tg::model::ConfigBots;
-use crate::tg::reader::handlers::message_handler;
 use crate::format_values;
 use crate::model::{BaseConfig, CowStr};
+use crate::tg::model::ConfigBots;
+use crate::tg::reader::handlers::message_handler;
 use log::{error, info, trace, warn};
 use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::*;

@@ -2,12 +2,12 @@ mod model;
 mod util;
 
 use crate::args::Args;
-use crate::tg::model::{ConfigBots, FormatsConfigs};
-use crate::tg::writer::model::ConfigParameters;
-use crate::tg::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
 use crate::format::formatting;
 use crate::handler::model::MsgHandler;
 use crate::model::{BaseConfig, CowStr, EmojiCollection};
+use crate::tg::model::{ConfigBots, FormatsConfigs};
+use crate::tg::writer::model::ConfigParameters;
+use crate::tg::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
 use log::{debug, warn};
 use serde_yaml::{to_value, Value};
 use teloxide::prelude::*;
