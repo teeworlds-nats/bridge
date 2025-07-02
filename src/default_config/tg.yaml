@@ -1,0 +1,12 @@
+nats:
+  server:
+    - nats://127.0.0.1:4222
+
+  # reader
+  from:
+    - "tw.DDnet.I.chat"
+
+bot:
+  token:
+    - TOKEN
+

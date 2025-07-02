@@ -1,4 +1,4 @@
-use crate::bots::model::FormatConfig;
+use crate::tg::model::FormatConfig;
 use crate::format_values;
 use crate::model::CowStr;
 use crate::util::escape_string;

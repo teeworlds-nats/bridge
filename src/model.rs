@@ -9,9 +9,11 @@ use serde_derive::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::option::Option;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use std::time::Duration;
+use tokio::fs;
 use tokio::fs::File;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+use tokio::io::AsyncWriteExt;
 use tw_econ::Econ;
 
 pub type CowStr<'a> = Cow<'a, str>;
@@ -22,15 +24,39 @@ pub trait BaseConfig: DeserializeOwned + Sized {
     fn nats_config(&self) -> &NatsConfig<'_>;
     fn logging_config(&self) -> Option<String>;
 
+    async fn create_default_config(path: &Path) -> Result<(), ConfigError> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .await
+                .map_err(|e| ConfigError::io(path, e))?;
+        }
+
+        let mut file = File::create(path)
+            .await
+            .map_err(|e| ConfigError::io(path, e))?;
+
+        file.write_all(Self::default_config().await.as_bytes())
+            .await
+            .map_err(|e| ConfigError::io(path, e))?;
+
+        Ok(())
+    }
+
     async fn load_yaml(config_path: &str) -> Result<Self, ConfigError> {
         let path = PathBuf::from(config_path);
-        let mut contents = String::new();
 
-        let mut file = File::open(&path)
+        if !fs::try_exists(&path)
             .await
-            .map_err(|e| ConfigError::io(&path, e))?;
+            .map_err(|e| ConfigError::io(&path, e))?
+        {
+            Self::create_default_config(&path).await?;
 
-        file.read_to_string(&mut contents)
+            println!("The configuration file was not found. A new file has been created along the path: {}", path.display());
+            println!("Please fill it in with the necessary settings and restart the application.");
+            exit(0);
+        }
+
+        let contents = fs::read_to_string(&path)
             .await
             .map_err(|e| ConfigError::io(&path, e))?;
 
@@ -68,6 +94,10 @@ pub trait BaseConfig: DeserializeOwned + Sized {
         debug!("Connected nats: {:?}", config.server);
         Ok(Nats::from_client(nc))
     }
+
+    async fn default_config() -> &'static str {
+        ""
+    }
     async fn econ_connect(&self) -> anyhow::Result<Econ> {
         Err(anyhow!("NOT IMPLEMENTED"))
     }
@@ -93,13 +123,11 @@ pub struct EmojiCollection {
 impl EmojiCollection {
     pub async fn new() -> anyhow::Result<Self> {
         let mut emojis = Vec::new();
-        let mut line = String::new();
 
         for line in EMOJIS.split("\n") {
             if let Some((symbol, name)) = Self::parse_emoji_line(&line) {
                 emojis.push(Emoji { symbol, name });
             }
-            line.clear();
         }
 
         Ok(Self { emojis })
