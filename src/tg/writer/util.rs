@@ -1,6 +1,6 @@
-use crate::bots::model::FormatConfig;
 use crate::format_values;
 use crate::model::CowStr;
+use crate::tg::model::FormatConfig;
 use crate::util::escape_string;
 use serde_yaml::Value;
 use teloxide::prelude::Message;

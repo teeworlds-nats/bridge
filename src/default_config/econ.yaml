@@ -1,0 +1,30 @@
+nats:
+  server:
+    - nats://127.0.0.1:4222
+  from:
+    - "tw.{{type}}.write.{{server_name}}"
+    - "tw.sync"
+  to:
+    - "tw.{{type}}.read.{{server_name}}"
+
+  # Required value to be sent to all "econ" services, not just one of the queues.
+  queue: ""
+
+econ:
+  host: "127.0.0.1:8303"
+  password: econ_password # Replace with actual Econ password
+  first_commands:
+    - "say [SYSTEM] ECON Bridge connected!"
+  tasks:
+    - command: 
+        - "bans_save bans"
+      delay: 300
+      # attempt to send a message to the server to re-establish the connection if it fails to send it
+    - command: 
+        - ""
+      delay: 5
+
+args:
+  server_name: "server-1"
+  type: "ddnet"
+  message_thread_id: 1 # Integer only (Telegram thread ID)

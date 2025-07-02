@@ -1,0 +1,14 @@
+nats:
+  server:
+    - nats://127.0.0.1:4222
+
+paths:
+  - from: tw.econ.read.*
+    regex:
+      - "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (I|E) ([a-z]+): (.*)"
+    to:
+      - tw.DDnet.{{2}}.{{3}}  # {{0}} - Original full message text
+    args:
+      message_text: "{{3}}"    # {{0}} - Corresponds to paths[?].to's {{1}}
+      message_regex: "^\\d+:-?\\d+:([^:]+: .+)$"
+      not_starts_with: "***"

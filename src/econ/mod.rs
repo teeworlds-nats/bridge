@@ -110,6 +110,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                 Err(err) => {
                     error!("Error sending to econ: {err}");
 
+                    reader.abort();
                     reconnect_attempt += 1;
                     if reconnect_attempt > config.econ.reconnect.max_attempts {
                         error!(
@@ -126,12 +127,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         reconnect_attempt, config.econ.reconnect.max_attempts
                     );
 
-                    tokio::time::sleep(Duration::from_secs(config.econ.reconnect.sleep)).await;
-
                     match config.econ.econ_connect(Some(&args)).await {
                         Ok(result) => {
                             reconnect_attempt = 0;
-                            reader.abort();
                             reader = tokio::spawn(msg_reader(
                                 config
                                     .econ_connect()
@@ -147,10 +145,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         }
                         Err(e) => {
                             error!("Reconnect failed: {e}");
-                            tokio::time::sleep(Duration::from_secs(config.econ.reconnect.sleep))
-                                .await;
                         }
                     }
+                    tokio::time::sleep(Duration::from_secs(config.econ.reconnect.sleep)).await;
                 }
             }
         }

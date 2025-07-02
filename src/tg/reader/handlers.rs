@@ -1,8 +1,8 @@
 use crate::args::Args;
-use crate::bots::reader::model::MsgHandler;
 use crate::format::formatting;
 use crate::model::CowStr;
 use crate::nats::Nats;
+use crate::tg::reader::model::MsgHandler;
 use crate::util::convert;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};

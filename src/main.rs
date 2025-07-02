@@ -11,13 +11,13 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 mod args;
-mod bots;
 mod econ;
 mod errors;
 mod format;
 mod handler;
 mod model;
 mod nats;
+mod tg;
 mod util;
 mod value;
 
@@ -32,11 +32,32 @@ struct Cli {
 }
 
 #[derive(Subcommand, Debug)]
+enum TgAction {
+    #[command(
+        about = "tg -> nats",
+        long_about = "Sends all messages from telegram to the \"econ\" part",
+        visible_alias = "w"
+    )]
+    Writer,
+    #[command(
+        about = "nats -> tg",
+        long_about = "Received a message from \"econ\" and send it to tg",
+        visible_alias = "r"
+    )]
+    Reader,
+}
+
+#[derive(Subcommand, Debug)]
 enum Actions {
+    #[command(about = "econ -> nats", visible_alias = "r")]
     Econ,
+    #[command(about = "nats -> nats", visible_alias = "h")]
     Handler,
-    BotReader,
-    BotWriter,
+    #[command(about = "Sending-receiving messages via telegram bots")]
+    Tg {
+        #[command(subcommand)]
+        action: TgAction,
+    },
 }
 
 #[tokio::main]
@@ -59,10 +80,11 @@ async fn main() -> anyhow::Result<()> {
     match &cli.action {
         Actions::Econ => econ::main(cli.config).await,
         Actions::Handler => handler::main(cli.config).await,
-        Actions::BotReader => bots::reader::main(cli.config).await,
-        Actions::BotWriter => bots::writer::main(cli.config).await,
-    }
-    .expect("Service operation error");
+        Actions::Tg { action } => match action {
+            TgAction::Writer => tg::writer::main(cli.config).await,
+            TgAction::Reader => tg::reader::main(cli.config).await,
+        },
+    }?;
 
     warn!("The program ran into the end");
 

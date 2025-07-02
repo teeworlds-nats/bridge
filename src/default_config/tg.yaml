@@ -1,7 +1,8 @@
 nats:
   server:
-    - nats://nats:4222
+    - nats://127.0.0.1:4222
 
+  # reader
   from:
     - "tw.DDnet.I.chat"
 
@@ -9,6 +10,3 @@ bot:
   token:
     - TOKEN
 
-# combines with other "args"
-args:
-  chat_id: -123

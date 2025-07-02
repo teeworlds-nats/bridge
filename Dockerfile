@@ -26,7 +26,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=rust-build /app_build/emoji.txt /tw/emoji.txt
 COPY --from=rust-build /app_build/target/release/bridge /tw/bridge
 
 CMD ["/tw/bridge", "econ"]
