@@ -2,6 +2,8 @@
 
 A robust messaging bridge connecting DDNet game servers to Telegram via NATS JetStream.
 
+---
+
 ## 🚀 Quick Start
 
 ```bash
@@ -9,71 +11,42 @@ A robust messaging bridge connecting DDNet game servers to Telegram via NATS Jet
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Run services
-cargo run -- econ -c configs/econ.yaml
-cargo run -- handler -c configs/handler.yaml
-cargo run -- bots/reader -c configs/reader.yaml
+cargo run -- econ -c econ.yaml
+cargo run -- handler -c handler.yaml
+cargo run -- tg reader -c tg.yaml
 ```
+
+---
 
 ## 📦 Microservices
 
-| Service       | Description                       |
-|---------------|-----------------------------------|
-| `econ`        | DDNet ECON connector → NATS       |
-| `handler`     | Message processor and router      |
-| `bots/reader` | NATS → Telegram message forwarder |
+| Service   | Description                  |
+|-----------|------------------------------|
+| `econ`    | DDNet ECON connector → NATS  |
+| `handler` | Message processor and router |
+| `tg`      | NATS <-> Telegram            |
 
-## ⚙️ Configuration
-
-```bash
-# Basic usage
-cargo run -- <service> --config <file.yaml>
-
-# Example
-cargo run -- handler -c ./custom-handler-config.yaml
-```
-
-## 📁 Example Configurations
-
-Ready-to-use configuration examples for each service:
-
-| Сервис        | Пример конфигурации                                              |
-|---------------|------------------------------------------------------------------|
-| `econ`        | [econ/config.yaml](src/econ/config_examples/basic.yaml)          |
-| `handler`     | [handler/config.yaml](src/handler/config_examples/basic.yaml)    |
-| `bots/reader` | [reader/config.yaml](src/bots/reader/config_examples/basic.yaml) |
-
-### 📁 Full directory structure:
-
-Explore our example configurations for each component:
-
-```
-📂 src/
-├── 📂 econ/
-│   └── 📂 config_examples/
-│       └── basic.yaml       # ECON connection settings
-├── 📂 handler/
-│   └── 📂 config_examples/
-│       └── basic.yaml       # Message processing rules
-└── 📂 bots/
-    └── 📂 reader/
-        └── 📂 config_examples/
-            └── basic.yaml   # Telegram bot setup      
-```
+---
 
 ## 🛠 Deployment
 
 ### Kubernetes
 
-[k8s.md](guide/k8s.md)
+[k8s.md](https://github.com/teeworlds-nats/bridge/wiki/k8s)
 
 ### Manual
 
 ```bash
 cargo build --release
-./target/release/econ -c src/econ/basic.yaml
-./target/release/handler -c src/handler/basic.yaml
+./target/release/bridge econ -c econ.yaml
+./target/release/bridge handler -c handler.yaml
 ```
 
+---
+
+Examples of configs on [wiki](https://github.com/teeworlds-nats/bridge/wiki)
+
+---
 ## 🤝 Contributing
 
 1. Fork the repository
