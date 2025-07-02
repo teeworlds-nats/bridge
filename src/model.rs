@@ -16,6 +16,8 @@ use tw_econ::Econ;
 
 pub type CowStr<'a> = Cow<'a, str>;
 
+const EMOJIS: &str = include_str!("emoji.txt");
+
 pub trait BaseConfig: DeserializeOwned + Sized {
     fn nats_config(&self) -> &NatsConfig<'_>;
     fn logging_config(&self) -> Option<String>;
@@ -89,18 +91,11 @@ pub struct EmojiCollection {
 }
 
 impl EmojiCollection {
-    pub async fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let file = File::open(path).await?;
-        let mut reader = BufReader::new(file);
+    pub async fn new() -> anyhow::Result<Self> {
         let mut emojis = Vec::new();
         let mut line = String::new();
 
-        loop {
-            let bytes_read = reader.read_line(&mut line).await?;
-            if bytes_read == 0 {
-                break; // EOF reached
-            }
-
+        for line in EMOJIS.split("\n") {
             if let Some((symbol, name)) = Self::parse_emoji_line(&line) {
                 emojis.push(Emoji { symbol, name });
             }
