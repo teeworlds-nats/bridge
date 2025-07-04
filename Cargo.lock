@@ -2520,8 +2520,8 @@ dependencies = [
 
 [[package]]
 name = "tw-econ"
-version = "0.6.2"
-source = "git+https://github.com/teeworlds-nats/asyns-tw-econ#55a4b0361a6a93b78de32fd97a19707f3975fe7d"
+version = "0.7.0"
+source = "git+https://github.com/teeworlds-nats/asyns-tw-econ#38acf4e88c3b7f0918b6305225e2f4a354e1f965"
 dependencies = [
  "tokio",
 ]
