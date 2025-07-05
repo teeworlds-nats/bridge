@@ -213,7 +213,7 @@ repository = "https://github.com/tokio-rs/bytes"
 
 [[dependencies]]
 name = "cc"
-version = "1.2.27"
+version = "1.2.28"
 description = """
 A build-time dependency for Cargo build scripts to assist in invoking the native
 C compiler to compile native C code into a static archive to be linked into Rust
@@ -1105,6 +1105,18 @@ notices = ["Copyright (c) 2016--2017"]
 repository = "https://github.com/indexmap-rs/indexmap"
 
 [[dependencies]]
+name = "io-uring"
+version = "0.7.8"
+description = "The low-level `io_uring` userspace interface for Rust"
+license = "MIT OR Apache-2.0"
+notices = [
+  "Copyright (c) 2019 quininer@live.com",
+  "Copyright 2019 quininer kel",
+]
+authors = ["quininer <quininer@live.com>"]
+repository = "https://github.com/tokio-rs/io-uring"
+
+[[dependencies]]
 name = "ipnet"
 version = "2.11.0"
 description = "Provides types and useful methods for working with IPv4 and IPv6 network addresses, commonly called IP prefixes. The new `IpNet`, `Ipv4Net`, and `Ipv6Net` types build on the existing `IpAddr`, `Ipv4Addr`, and `Ipv6Addr` types already provided in Rust's standard library and align to their design to stay consistent. The module also provides useful traits that extend `Ipv4Addr` and `Ipv6Addr` with methods for `Add`, `Sub`, `BitAnd`, and `BitOr` operations. The module only uses stable feature so it is guaranteed to compile using the stable toolchain."
@@ -1319,7 +1331,7 @@ repository = "https://github.com/snowfoxsh/nestify"
 
 [[dependencies]]
 name = "nkeys"
-version = "0.4.4"
+version = "0.4.5"
 description = "Rust implementation of the NATS nkeys library"
 license = "Apache-2.0"
 authors = ["wasmCloud Team"]
@@ -1786,7 +1798,7 @@ repository = "https://github.com/rust-lang/regex/tree/master/regex-syntax"
 
 [[dependencies]]
 name = "reqwest"
-version = "0.12.20"
+version = "0.12.22"
 description = "higher level HTTP client library"
 license = "MIT OR Apache-2.0"
 notices = [
@@ -1952,6 +1964,16 @@ repository = "https://github.com/GREsau/schemars"
 homepage = "https://graham.cool/schemars/"
 
 [[dependencies]]
+name = "schemars"
+version = "1.0.3"
+description = "Generate JSON Schemas from Rust code"
+license = "MIT"
+notices = ["Copyright (c) 2019 Graham Esau"]
+authors = ["Graham Esau <gesau@hotmail.co.uk>"]
+repository = "https://github.com/GREsau/schemars"
+homepage = "https://graham.cool/schemars/"
+
+[[dependencies]]
 name = "scopeguard"
 version = "1.2.0"
 description = """
@@ -2064,7 +2086,7 @@ repository = "https://github.com/nox/serde_urlencoded"
 
 [[dependencies]]
 name = "serde_with"
-version = "3.13.0"
+version = "3.14.0"
 description = "Custom de/serialization functions for Rust's serde"
 license = "MIT OR Apache-2.0"
 notices = ["Copyright (c) 2015"]
@@ -2073,7 +2095,7 @@ repository = "https://github.com/jonasbb/serde_with/"
 
 [[dependencies]]
 name = "serde_with_macros"
-version = "3.13.0"
+version = "3.14.0"
 description = "proc-macro library for serde_with"
 license = "MIT OR Apache-2.0"
 notices = ["Copyright (c) 2015"]
@@ -2432,7 +2454,7 @@ repository = "https://github.com/unicode-org/icu4x"
 
 [[dependencies]]
 name = "tokio"
-version = "1.45.1"
+version = "1.46.1"
 description = """
 An event-driven, non-blocking I/O platform for writing asynchronous I/O
 backed applications.
@@ -2620,7 +2642,7 @@ repository = "https://github.com/EmbarkStudios/tryhard"
 
 [[dependencies]]
 name = "tw-econ"
-version = "0.6.2"
+version = "0.7.0"
 description = "Simple Rust library to use Teeworlds external console"
 license = "MIT"
 authors = ["Vlad <gerdoexx@gmail.com>"]
