@@ -16,11 +16,11 @@ econ:
   first_commands:
     - "say [SYSTEM] ECON Bridge connected!"
   tasks:
-    - command: 
+    - commands:
         - "bans_save bans"
       delay: 300
       # attempt to send a message to the server to re-establish the connection if it fails to send it
-    - command: 
+    - commands:
         - ""
       delay: 5
 
