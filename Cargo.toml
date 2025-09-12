@@ -26,7 +26,7 @@ nestify = "0.3.3"
 teloxide = { version = "0.17.0", features = ["macros", "native-tls"] }
 anyhow = "1.0.99"
 lazy_static = "1.5.0"
-chrono = "0.4.41"
+chrono = "0.4.42"
 rand = "0.8.5"
 cron = "0.15.0"
 
