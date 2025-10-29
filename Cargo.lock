@@ -148,6 +148,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-tw-econ"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d811833b80fecf3632eb85369c99e7ac243ba55c8c215046dd59f0985656d64a"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -201,6 +210,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-nats",
+ "async-tw-econ",
  "bytes",
  "chrono",
  "clap",
@@ -220,7 +230,6 @@ dependencies = [
  "signal-hook",
  "teloxide",
  "tokio",
- "tw-econ",
 ]
 
 [[package]]
@@ -2516,14 +2525,6 @@ checksum = "9c9f0a709784e86923586cff0d872dba54cd2d2e116b3bc57587d15737cfce9d"
 dependencies = [
  "futures",
  "pin-project-lite",
- "tokio",
-]
-
-[[package]]
-name = "tw-econ"
-version = "0.6.2"
-source = "git+https://github.com/teeworlds-nats/asyns-tw-econ#55a4b0361a6a93b78de32fd97a19707f3975fe7d"
-dependencies = [
  "tokio",
 ]
 

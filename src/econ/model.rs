@@ -3,6 +3,7 @@ use crate::format::formatting;
 use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use anyhow::anyhow;
+use async_tw_econ::Econ;
 use log::warn;
 use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
@@ -10,7 +11,6 @@ use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tw_econ::Econ;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgBridge {

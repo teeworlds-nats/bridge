@@ -4,13 +4,13 @@ use crate::handler::model::MsgHandler;
 use crate::model::CowStr;
 use crate::nats::Nats;
 use crate::util::convert;
+use async_tw_econ::Econ;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
-use tw_econ::Econ;
 
 pub async fn process_messages<'a>(
     tx: Sender<String>,
