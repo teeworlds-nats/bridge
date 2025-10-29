@@ -2,10 +2,10 @@ use crate::errors::ConfigError;
 use crate::nats::{Nats, NatsAuth, NatsConfig};
 use anyhow::anyhow;
 use async_nats::ConnectOptions;
+use async_tw_econ::Econ;
 use env_logger::Builder;
 use log::{debug, LevelFilter};
 use serde::de::DeserializeOwned;
-use serde_derive::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::option::Option;
 use std::path::{Path, PathBuf};
@@ -14,7 +14,6 @@ use std::time::Duration;
 use tokio::fs;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
-use tw_econ::Econ;
 
 pub type CowStr<'a> = Cow<'a, str>;
 
@@ -101,12 +100,6 @@ pub trait BaseConfig: DeserializeOwned + Sized {
     async fn econ_connect(&self) -> anyhow::Result<Econ> {
         Err(anyhow!("NOT IMPLEMENTED"))
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MsgError<'a> {
-    pub text: String,
-    pub publish: CowStr<'a>,
 }
 
 #[derive(Debug, Clone)]

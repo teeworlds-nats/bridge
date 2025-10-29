@@ -1,21 +1,16 @@
-name: "CI"
+name: Rust
 
-on:
-  merge_group:
-  workflow_dispatch:
-  workflow_call:
-  pull_request:
-  push:
+on: [push, pull_request]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  cargo-build:
-    name: Cargo Build
+  cargo-build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Fetch Repository
         uses: actions/checkout@v5
@@ -45,18 +40,15 @@ jobs:
   cargo-clippy:
     name: Cargo clippy
     runs-on: ubuntu-latest
-
     steps:
-      - name: Fetch Repository
-        uses: actions/checkout@v5
-
-      - name: Install stable toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: actions-rs/toolchain@v1
         with:
-          components: clippy
-
-      - name: Clippy Check
-        run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add clippy
+      - run: RUSTFLAGS="-C target-cpu=haswell" cargo clippy --all-features -- -D warnings
 
   cargo-doc:
     name: Cargo doc
@@ -90,42 +82,3 @@ jobs:
 
       - name: Cargo test doc
         run: cargo test --doc --workspace --all-features
-
-  cargo-next-test:
-    name: Cargo test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Fetch Repository
-        uses: actions/checkout@v5
-
-      - name: Install stable toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
-
-      - name: Cargo test
-        run: cargo nextest run --workspace --all-targets --all-features --no-tests=pass
-
-  taplo-toml-fmt:
-    name: taplo fmt
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Fetch Repository
-        uses: actions/checkout@v5
-
-      - name: Install Taplo
-        uses: taiki-e/install-action@v2
-        with:
-          tool: taplo-cli
-
-      - name: Run Taplo
-        id: taplo
-        run: taplo fmt --check --diff
-
-  cargo-miri:
-    uses: ./.github/workflows/cargo_miri.yaml
