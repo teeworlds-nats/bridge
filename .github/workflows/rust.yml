@@ -1,0 +1,81 @@
+name: Rust
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v5
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: cargo build
+        run: cargo b --workspace --all-targets --all-features
+
+  cargo-fmt:
+    name: Cargo fmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v5
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+
+      - name: Rustfmt Check
+        run: cargo fmt --all --check
+
+  cargo-clippy:
+    name: Cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add clippy
+      - run: RUSTFLAGS="-C target-cpu=haswell" cargo clippy --all-features -- -D warnings
+
+  cargo-doc:
+    name: Cargo doc
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v5
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Cargo doc test
+        run: cargo doc --workspace --all-features
+
+  check-crate-type:
+    uses: ./.github/workflows/crate_type.yaml
+
+  cargo-test-doc:
+    needs: check-crate-type
+    if: ${{ needs.check-crate-type.outputs.is_lib == 'true' }}
+    name: Cargo test doc
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v5
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Cargo test doc
+        run: cargo test --doc --workspace --all-features
