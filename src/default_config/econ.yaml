@@ -19,10 +19,6 @@ econ:
     - commands:
         - "bans_save bans"
       delay: 300
-      # attempt to send a message to the server to re-establish the connection if it fails to send it
-    - commands:
-        - ""
-      delay: 5
 
 args:
   server_name: "server-1"

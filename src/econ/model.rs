@@ -48,6 +48,13 @@ nest! {
                         pub max_attempts: i64,
                         pub sleep: u64,
                     },
+                #[serde(default)]
+                pub ping:
+                    #[derive(Clone, Deserialize)]
+                    pub struct PingConfig {
+                        pub enable: bool,
+                        pub delay: u64,
+                    },
             },
 
         pub args: Option<Value>,
@@ -126,6 +133,15 @@ impl Default for ReconnectConfig {
         Self {
             max_attempts: 20,
             sleep: 10,
+        }
+    }
+}
+
+impl Default for PingConfig {
+    fn default() -> Self {
+        Self {
+            enable: true,
+            delay: 5,
         }
     }
 }

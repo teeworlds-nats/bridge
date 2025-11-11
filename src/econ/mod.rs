@@ -2,17 +2,21 @@ mod enums;
 mod handlers;
 pub mod model;
 
-use crate::econ::handlers::{msg_reader, process_messages};
-use crate::econ::model::ConfigEcon;
-use crate::format_values;
-use crate::model::{BaseConfig, CowStr};
-use log::{debug, error, info, warn};
-use std::collections::HashSet;
-use std::time::Duration;
+use crate::{
+    econ::{
+        enums::Task,
+        handlers::{msg_reader, process_messages},
+        model::ConfigEcon,
+    },
+    format_values,
+    model::{BaseConfig, CowStr},
+};
+use log::{debug, error, info};
+use std::{collections::HashSet, time::Duration};
 use tokio::sync::mpsc;
 
 pub async fn main(config_path: String) -> anyhow::Result<()> {
-    let config = ConfigEcon::load_yaml(&config_path).await?;
+    let config: ConfigEcon = ConfigEcon::load_yaml(&config_path).await?;
     config.set_logging();
 
     let (tx, mut rx) = mpsc::channel(64);
@@ -25,12 +29,6 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     info!("econ connected");
 
     let args = config.args.clone().unwrap_or_default();
-    let first_commands: Vec<CowStr> =
-        format_values!(config.econ.first_commands.clone(), &args, &[], Vec::new());
-    for command in first_commands {
-        econ_write.send_line(command.to_string()).await?;
-    }
-
     let read_path: Vec<CowStr> = format_values!(
         config.nats.from.clone(),
         &args,
@@ -54,6 +52,11 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         single
     );
 
+    for command in format_values!(config.econ.first_commands.clone(), &args, &[], Vec::new()) {
+        econ_write.send_line(command.to_string()).await?;
+    }
+
+    // reader
     let mut reader = tokio::spawn(msg_reader(
         config
             .econ_connect()
@@ -71,7 +74,16 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
             queue.clone(),
         ));
     }
+
+    // tanks
     let mut tasks = config.econ.clone().tasks;
+    if config.econ.ping.enable {
+        // ping
+        tasks.push(Task::Delay {
+            commands: vec![String::new()],
+            delay: config.econ.ping.delay,
+        });
+    }
     tasks.reverse();
 
     for _task in tasks {
@@ -84,6 +96,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         });
     }
 
+    // writer
     let mut pending_messages = Vec::new();
     let mut reconnect_attempt = 0;
 
@@ -95,7 +108,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         .collect();
 
     while let Some(message) = rx.recv().await {
-        if reconnect_attempt != 0 && tasks_messages.contains(&message) {
+        if reconnect_attempt != 0 && (tasks_messages.contains(&message) || message.is_empty()) {
             debug!("Skipping task command during reconnect: {message}");
             continue;
         }
@@ -122,7 +135,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         break;
                     }
 
-                    warn!(
+                    info!(
                         "Attempting to reconnect (attempt {}/{})",
                         reconnect_attempt, config.econ.reconnect.max_attempts
                     );
