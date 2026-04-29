@@ -8,6 +8,7 @@ use crate::model::{BaseConfig, CowStr, EmojiCollection};
 use crate::tg::model::{ConfigBots, FormatsConfigs};
 use crate::tg::writer::model::ConfigParameters;
 use crate::tg::writer::util::{formats, get_topic_name, normalize_truncate_in_place};
+use bytes::Bytes;
 use log::{debug, warn};
 use serde_yaml::{to_value, Value};
 use teloxide::prelude::*;
@@ -63,7 +64,7 @@ async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), Reque
     let write_paths = formatting::format_values(
         cfg.send_paths,
         &args,
-        &[],
+        &[] as &[&str],
         vec![CowStr::Borrowed("tw.tg.*")],
     );
 
@@ -85,8 +86,9 @@ async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), Reque
     )
     .await;
     debug!("send {data} to {write_paths:?}:");
+    let payload = Bytes::from(data);
     for path in write_paths {
-        cfg.nats.publish(path, data.to_owned()).await.ok();
+        cfg.nats.publish_bytes(path, payload.clone()).await.ok();
     }
     Ok(())
 }

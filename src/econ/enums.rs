@@ -1,15 +1,14 @@
 use crate::econ::model::LineState;
 use futures_util::future::join_all;
 use log::{debug, warn};
-use rand::prelude::{SliceRandom, StdRng};
-use rand::SeedableRng;
+use rand::prelude::SliceRandom;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::str::FromStr;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -94,12 +93,16 @@ impl Task {
     async fn process_commands(tx: &Sender<String>, state: &LineState, exec_type: &TaskType) {
         match exec_type {
             TaskType::Line => {
-                let cmd = state.get_next_command().await;
+                let cmd = state.get_next_command();
                 Self::send_command(tx, &cmd).await;
             }
             TaskType::Random => {
-                let mut rng = StdRng::from_entropy();
-                match state.commands.choose(&mut rng) {
+                let chosen = {
+                    let mut rng = rand::thread_rng();
+                    state.commands.choose(&mut rng).map(|s| s.as_str())
+                };
+
+                match chosen {
                     None => warn!("random: No commands available"),
                     Some(result) => Self::send_command(tx, result).await,
                 }
@@ -120,7 +123,7 @@ impl Task {
 
 fn default_line_state() -> LineState {
     LineState {
-        index: Arc::new(Mutex::new(0)),
+        index: Arc::new(AtomicUsize::new(0)),
         commands: Vec::new(),
     }
 }

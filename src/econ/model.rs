@@ -9,8 +9,8 @@ use nestify::nest;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsgBridge {
@@ -48,13 +48,6 @@ nest! {
                         pub max_attempts: i64,
                         pub sleep: u64,
                     },
-                #[serde(default)]
-                pub ping:
-                    #[derive(Clone, Deserialize)]
-                    pub struct PingConfig {
-                        pub enable: bool,
-                        pub delay: u64,
-                    },
             },
 
         pub args: Option<Value>,
@@ -85,7 +78,7 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
 impl EconConfig {
     pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
         let args = args.unwrap_or(&Value::Null);
-        formatting::get_and_format(&self.host, args, &[])
+        formatting::get_and_format(&self.host, args, &[] as &[&str])
             .to_socket_addrs()
             .expect("Error create econ address")
             .next()
@@ -137,40 +130,29 @@ impl Default for ReconnectConfig {
     }
 }
 
-impl Default for PingConfig {
-    fn default() -> Self {
-        Self {
-            enable: true,
-            delay: 5,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LineState {
     #[serde(skip_serializing, skip_deserializing)]
-    pub index: Arc<Mutex<usize>>,
+    pub index: Arc<AtomicUsize>,
     pub commands: Vec<String>,
 }
 
 impl LineState {
     pub fn new(commands: Vec<String>) -> Self {
         Self {
-            index: Arc::new(Mutex::new(0)),
+            index: Arc::new(AtomicUsize::new(0)),
             commands,
         }
     }
 
-    pub async fn get_next_command(&self) -> String {
+    pub fn get_next_command(&self) -> String {
         if self.commands.is_empty() {
             warn!("get_next_command: No commands available");
             return String::default();
         }
 
-        let mut index = self.index.lock().await;
-        let cmd = self.commands[*index % self.commands.len()].clone();
-        *index += 1;
-        cmd
+        let index = self.index.fetch_add(1, Ordering::Relaxed);
+        self.commands[index % self.commands.len()].clone()
     }
 }
 

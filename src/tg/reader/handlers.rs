@@ -19,6 +19,7 @@ pub async fn message_handler<'a>(
 ) -> Result<(), async_nats::Error> {
     info!("Subscribe to the channel: \"{subscriber_str}\"");
     let mut subscriber = nats.subscriber(subscriber_str, queue).await;
+    let mut regex_cache: Option<(String, Regex)> = None;
 
     while let Some(message) = subscriber.next().await {
         debug!(
@@ -38,11 +39,18 @@ pub async fn message_handler<'a>(
             if message_regex.is_empty() {
                 formatting::get_and_format(&message_text, &new_args, &msg.value)
             } else {
-                let regex = match Regex::new(&message_regex) {
-                    Ok(r) => r,
-                    Err(e) => {
-                        error!("Failed to compile regex: \"{message_regex}\", err: {e}");
-                        continue;
+                let regex = match &regex_cache {
+                    Some((cached, re)) if cached == &message_regex => re,
+                    _ => {
+                        let compiled = match Regex::new(&message_regex) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                error!("Failed to compile regex: \"{message_regex}\", err: {e}");
+                                continue;
+                            }
+                        };
+                        regex_cache = Some((message_regex.clone(), compiled));
+                        &regex_cache.as_ref().unwrap().1
                     }
                 };
 

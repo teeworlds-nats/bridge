@@ -80,14 +80,15 @@ pub mod formatting {
         }};
     }
 
-    pub fn format_values<'c, I>(
+    pub fn format_values<'c, I, T>(
         input: I,
         args: &Value,
-        list_values: &[String],
+        list_values: &[T],
         default: Vec<CowStr<'c>>,
     ) -> Vec<CowStr<'static>>
     where
         I: Into<Option<Vec<CowStr<'c>>>>,
+        T: AsRef<str>,
     {
         input
             .into()
@@ -97,24 +98,17 @@ pub mod formatting {
             .collect()
     }
 
-    pub fn get_and_format(string: &str, args: &Value, list_values: &[String]) -> CowStr<'static> {
+    pub fn get_and_format<T: AsRef<str>>(
+        string: &str,
+        args: &Value,
+        list_values: &[T],
+    ) -> CowStr<'static> {
         if !string.contains("{{") {
             return CowStr::Owned(string.to_string());
         }
 
-        let new_args = {
-            let mut new_args = args.clone();
-
-            let path_server_name = Args::get(args, "path_server_name", "server_name".to_string());
-            let path_thread_id = Args::get(args, "path_thread_id", "message_thread_id".to_string());
-
-            new_args["server_name"] =
-                Value::String(Args::get(args, &path_server_name, "".to_string()));
-            new_args["message_thread_id"] =
-                Value::from(Args::get::<i64, Value>(args, &path_thread_id, -1));
-
-            new_args
-        };
+        let path_server_name = Args::get(args, "path_server_name", "server_name".to_string());
+        let path_thread_id = Args::get(args, "path_thread_id", "message_thread_id".to_string());
 
         CowStr::Owned(
             RE.replace_all(string, |caps: &Captures| {
@@ -123,11 +117,19 @@ pub mod formatting {
                 if let Ok(index) = key.parse::<usize>() {
                     return list_values
                         .get(index)
-                        .unwrap_or(&"".to_string())
+                        .map(|v| v.as_ref())
+                        .unwrap_or("")
                         .to_string();
                 }
 
-                let mut current_value = &new_args;
+                if key == "server_name" {
+                    return Args::get(args, &path_server_name, "".to_string());
+                }
+                if key == "message_thread_id" {
+                    return Args::get::<i64, Value>(args, &path_thread_id, -1).to_string();
+                }
+
+                let mut current_value = args;
                 for part in key.split('.') {
                     if let Value::Mapping(map) = current_value {
                         if let Some(value) = map.get(Value::String(part.to_string())) {
@@ -167,7 +169,7 @@ mod tests {
     fn test_no_placeholders() {
         let input = "Hello world";
         let args = Value::Null;
-        let list_values = vec![];
+        let list_values: Vec<String> = vec![];
 
         let result = formatting::get_and_format(input, &args, &list_values);
         assert_eq!(result, CowStr::Owned("Hello world".to_string()));
@@ -184,7 +186,7 @@ mod tests {
             );
             map
         });
-        let list_values = vec![];
+        let list_values: Vec<String> = vec![];
 
         let result = formatting::get_and_format(input, &args, &list_values);
         assert_eq!(result, CowStr::Owned("Hello Alice".to_string()));
@@ -205,7 +207,7 @@ mod tests {
             );
             map
         });
-        let list_values = vec![];
+        let list_values: Vec<String> = vec![];
 
         let result = formatting::get_and_format(input, &args, &list_values);
         assert_eq!(result, CowStr::Owned("Hello, Bob!".to_string()));
@@ -215,7 +217,7 @@ mod tests {
     fn test_missing_placeholder() {
         let input = "Hello {{name}}";
         let args = Value::Null;
-        let list_values = vec![];
+        let list_values: Vec<String> = vec![];
 
         let result = formatting::get_and_format(input, &args, &list_values);
         assert_eq!(result, CowStr::Owned("Hello ".to_string()));
@@ -254,7 +256,7 @@ mod tests {
                 map
             })
         };
-        let result = formatting::get_and_format(input, &args, &[]);
+        let result = formatting::get_and_format(input, &args, &[] as &[&str]);
         assert_eq!(result, CowStr::Owned("Bob (789)".to_string()));
     }
 }

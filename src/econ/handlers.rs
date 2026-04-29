@@ -5,6 +5,7 @@ use crate::model::CowStr;
 use crate::nats::Nats;
 use crate::util::convert;
 use async_tw_econ::Econ;
+use bytes::Bytes;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
 use serde_yaml::Value;
@@ -73,9 +74,10 @@ pub async fn msg_reader(
             }
         };
 
-        trace!("Sending JSON to {nats_path:?}: {json}");
+        let payload = Bytes::from(json);
+        trace!("Sending payload to {nats_path:?}");
         for patch in nats_path.clone() {
-            nats.publish(patch, json.to_owned()).await.ok();
+            nats.publish_bytes(patch, payload.clone()).await.ok();
         }
     }
 }

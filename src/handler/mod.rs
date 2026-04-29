@@ -11,6 +11,7 @@ use crate::model::{BaseConfig, CowStr};
 use crate::nats::Nats;
 use crate::util::{captures_to_list, convert};
 use anyhow::Error;
+use bytes::Bytes;
 use futures::future::join_all;
 use futures::StreamExt;
 use log::{debug, error, info, trace};
@@ -60,6 +61,7 @@ async fn handler<'a>(
         for regex in &re {
             if let Some(caps) = regex.captures(&msg.text) {
                 let json = chat_handler(&caps, &new_args).await;
+                let payload = Bytes::from(json);
 
                 let write_paths: Vec<CowStr<'a>> = formatting::format_values(
                     path.to.clone(),
@@ -67,9 +69,9 @@ async fn handler<'a>(
                     &captures_to_list(&caps),
                     Vec::new(),
                 );
-                trace!("send {json} to {write_paths:?}:");
+                trace!("send payload to {write_paths:?}:");
                 for path in write_paths {
-                    nats.publish(path, json.to_owned()).await.ok();
+                    nats.publish_bytes(path, payload.clone()).await.ok();
                 }
             }
         }

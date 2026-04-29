@@ -24,20 +24,27 @@ where
 
 pub fn escape_string(cow: CowStr) -> CowStr {
     if cow.contains(['"', '\'', '\\']) {
-        let escaped = cow
-            .replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('\'', "\\'");
-        Cow::Owned(escaped)
+        let mut out = String::with_capacity(cow.len());
+        for ch in cow.chars() {
+            match ch {
+                '\\' => out.push_str("\\\\"),
+                '"' => out.push_str("\\\""),
+                '\'' => out.push_str("\\'"),
+                _ => out.push(ch),
+            }
+        }
+        Cow::Owned(out)
     } else {
         cow
     }
 }
 
-pub fn captures_to_list(caps: &Captures) -> Vec<String> {
-    caps.iter()
-        .filter_map(|cap| cap.map(|m| m.as_str().to_string()))
-        .collect()
+pub fn captures_to_list<'a>(caps: &'a Captures<'a>) -> Vec<&'a str> {
+    let mut out = Vec::with_capacity(caps.len());
+    for cap in caps.iter().flatten() {
+        out.push(cap.as_str());
+    }
+    out
 }
 
 #[cfg(test)]

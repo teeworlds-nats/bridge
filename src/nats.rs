@@ -57,10 +57,14 @@ impl Nats {
         }
     }
 
-    pub async fn publish<'a>(&self, patch: CowStr<'a>, json: String) -> anyhow::Result<PublishAck> {
+    pub async fn publish_bytes<'a>(
+        &self,
+        patch: CowStr<'a>,
+        payload: Bytes,
+    ) -> anyhow::Result<PublishAck> {
         let publish_future = self
             .js
-            .publish(patch.to_string().to_subject(), Bytes::from(json))
+            .publish(patch.to_string().to_subject(), payload)
             .await
             .map_err(|e| {
                 error!("NATS publish failed [subject: {patch}]: {e}");

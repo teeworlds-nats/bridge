@@ -28,13 +28,13 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let reads_paths = format_values!(
         config.nats.from,
         &args,
-        &[],
+        &[] as &[&str],
         vec![CowStr::Borrowed("tw.tg.*")]
     );
     let queue: CowStr = format_values!(
         config.nats.queue,
         &args,
-        &[],
+        &[] as &[&str],
         CowStr::Borrowed("econ.reader");
         single
     );
