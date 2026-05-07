@@ -12,8 +12,8 @@ use crate::nats::Nats;
 use crate::util::{captures_to_list, convert};
 use anyhow::Error;
 use bytes::Bytes;
-use futures::future::join_all;
-use futures::StreamExt;
+use futures_util::future::join_all;
+use futures_util::StreamExt;
 use log::{debug, error, info, trace};
 use regex::Regex;
 use serde_yaml::Value;
@@ -52,9 +52,8 @@ async fn handler<'a>(
             "message received from {}, length {}, job_id: {}, sub_path: {}",
             message.subject, message.length, task_count, sub_path
         );
-        let msg = match convert::<MsgBridge>(&message.payload) {
-            Some(msg) => msg,
-            None => continue,
+        let Some(msg) = convert::<MsgBridge>(&message.payload) else {
+            continue;
         };
         let new_args = Args::merge_yaml_values(&msg.args, &args);
 

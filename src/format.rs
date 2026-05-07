@@ -1,9 +1,11 @@
-use lazy_static::lazy_static;
 use regex::Regex;
+use std::sync::LazyLock;
 
-lazy_static! {
-    static ref RE: Regex = Regex::new(r"\{\{([^\}]+)\}\}").unwrap();
-}
+static RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\{\{([^\}]+)\}\}").unwrap_or_else(|e| {
+        panic!("Hardcoded regex failed to compile: {e}");
+    })
+});
 
 pub mod formatting {
     use crate::args::Args;
@@ -117,13 +119,12 @@ pub mod formatting {
                 if let Ok(index) = key.parse::<usize>() {
                     return list_values
                         .get(index)
-                        .map(|v| v.as_ref())
-                        .unwrap_or("")
+                        .map_or("", AsRef::<str>::as_ref)
                         .to_string();
                 }
 
                 if key == "server_name" {
-                    return Args::get(args, &path_server_name, "".to_string());
+                    return Args::get(args, &path_server_name, String::new());
                 }
                 if key == "message_thread_id" {
                     return Args::get::<i64, Value>(args, &path_thread_id, -1).to_string();

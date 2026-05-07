@@ -51,14 +51,14 @@ pub async fn msg_reader(
     args: Value,
 ) -> anyhow::Result<()> {
     loop {
-        let line = match econ.recv_line(true).await {
-            Ok(Some(result)) => result,
-            Err(err) => {
+        let line = loop {
+            if let Some(line) = econ.pop_line() {
+                break line;
+            }
+            if let Err(err) = econ.fetch().await {
                 error!("Reader: err from loop: {err}");
                 sleep(Duration::from_secs(5)).await;
-                continue;
             }
-            _ => continue,
         };
         trace!("Message received from econ: {line}");
         let send_msg = MsgBridge {

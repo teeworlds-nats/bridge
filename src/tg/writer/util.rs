@@ -22,8 +22,8 @@ pub fn get_topic_name(msg: &Message) -> String {
 pub fn formats<'a>(
     formats: Vec<FormatConfig>,
     args: &Value,
-    text: String,
-    additional_text: String,
+    text: &str,
+    additional_text: &str,
 ) -> CowStr<'a> {
     let mut format_text = CowStr::default();
     for format in formats {
@@ -31,9 +31,9 @@ pub fn formats<'a>(
             Some(format.format),
             args,
             &[
-                text.clone(),
+                text.to_string(),
                 format_text.to_string(),
-                additional_text.clone(),
+                additional_text.to_string(),
             ],
             CowStr::default();
             single
@@ -53,5 +53,5 @@ pub fn normalize_truncate_in_place(text: &mut String, n: usize) -> String {
         text.truncate(idx);
     }
 
-    text.to_string()
+    text.clone()
 }

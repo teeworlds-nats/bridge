@@ -114,16 +114,16 @@ pub struct EmojiCollection {
 }
 
 impl EmojiCollection {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub fn new() -> Self {
         let mut emojis = Vec::new();
 
-        for line in EMOJIS.split("\n") {
+        for line in EMOJIS.split('\n') {
             if let Some((symbol, name)) = Self::parse_emoji_line(line) {
                 emojis.push(Emoji { symbol, name });
             }
         }
 
-        Ok(Self { emojis })
+        Self { emojis }
     }
 
     fn parse_emoji_line(line: &str) -> Option<(String, String)> {
@@ -138,7 +138,7 @@ impl EmojiCollection {
         Some((symbol, name))
     }
 
-    pub fn replace_symbols_with_names<'a>(&self, text: CowStr<'a>) -> CowStr<'a> {
+    pub fn replace_symbols_with_names<'a>(&self, text: &CowStr<'a>) -> CowStr<'a> {
         let mut result = text.to_string();
 
         for emoji in &self.emojis {

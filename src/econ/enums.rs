@@ -2,7 +2,7 @@ use crate::econ::model::LineState;
 use futures_util::future::join_all;
 use log::{debug, warn};
 use rand::prelude::SliceRandom;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::atomic::AtomicUsize;
@@ -43,7 +43,7 @@ impl Default for Task {
     fn default() -> Self {
         Task::Delay {
             delay: 5,
-            commands: vec!["".to_string()],
+            commands: vec![String::new()],
         }
     }
 }
@@ -73,10 +73,19 @@ impl Task {
                 r#type,
                 ..
             } => {
-                let schedule = cron::Schedule::from_str(cron).expect("Invalid cron");
+                let schedule = match cron::Schedule::from_str(cron) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("Invalid cron expression '{cron}': {e}");
+                        return;
+                    }
+                };
                 loop {
                     if let Some(next) = schedule.upcoming(chrono::Local).next() {
-                        sleep((next - chrono::Local::now()).to_std().unwrap()).await;
+                        let duration = (next - chrono::Local::now())
+                            .to_std()
+                            .unwrap_or(Duration::ZERO);
+                        sleep(duration).await;
                         Self::process_commands(tx, state, r#type).await;
                     }
                 }
@@ -99,7 +108,7 @@ impl Task {
             TaskType::Random => {
                 let chosen = {
                     let mut rng = rand::thread_rng();
-                    state.commands.choose(&mut rng).map(|s| s.as_str())
+                    state.commands.choose(&mut rng).map(String::as_str)
                 };
 
                 match chosen {
@@ -115,9 +124,9 @@ impl Task {
 
     async fn send_command(tx: &Sender<String>, command: &str) {
         debug!("tasks: send message to econ, msg: \"{command}\"");
-        tx.send(command.to_string())
-            .await
-            .expect("tx.send error, task failed");
+        if let Err(e) = tx.send(command.to_string()).await {
+            warn!("tx.send error, task failed: {e}");
+        }
     }
 }
 

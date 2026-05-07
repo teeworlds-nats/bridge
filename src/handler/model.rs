@@ -1,7 +1,7 @@
 use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use nestify::nest;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use serde_yaml::Value;
 
@@ -27,7 +27,7 @@ nest! {
     }
 }
 
-impl<'a> BaseConfig for ConfigHandler<'a> {
+impl BaseConfig for ConfigHandler<'_> {
     fn nats_config(&self) -> &NatsConfig<'_> {
         &self.nats
     }
@@ -49,11 +49,11 @@ pub struct MsgHandler {
 }
 
 impl MsgHandler {
-    pub async fn get_json(value: Vec<String>, text: String, yaml_args: &Value) -> String {
+    pub fn get_json(value: Vec<String>, text: String, yaml_args: &Value) -> String {
         let args: JsonValue = serde_json::to_value(yaml_args).unwrap_or_else(|err| {
             panic!("Transfer YamlValue to JsonValue Failed: {err}");
         });
-        let send_msg = MsgHandler { value, text, args };
+        let send_msg = MsgHandler { text, value, args };
 
         match serde_json::to_string_pretty(&send_msg) {
             Ok(str) => str,

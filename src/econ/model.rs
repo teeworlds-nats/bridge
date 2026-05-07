@@ -6,7 +6,7 @@ use anyhow::anyhow;
 use async_tw_econ::Econ;
 use log::warn;
 use nestify::nest;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -54,7 +54,7 @@ nest! {
     }
 }
 
-impl<'a> BaseConfig for ConfigEcon<'a> {
+impl BaseConfig for ConfigEcon<'_> {
     fn nats_config(&self) -> &NatsConfig<'_> {
         &self.nats
     }
@@ -76,13 +76,13 @@ impl<'a> BaseConfig for ConfigEcon<'a> {
 }
 
 impl EconConfig {
-    pub fn get_econ_addr(&self, args: Option<&Value>) -> SocketAddr {
+    pub fn get_econ_addr(&self, args: Option<&Value>) -> anyhow::Result<SocketAddr> {
         let args = args.unwrap_or(&Value::Null);
-        formatting::get_and_format(&self.host, args, &[] as &[&str])
-            .to_socket_addrs()
-            .expect("Error create econ address")
+        let addr = formatting::get_and_format(&self.host, args, &[] as &[&str]);
+        let mut addrs = addr.to_socket_addrs()?;
+        addrs
             .next()
-            .unwrap()
+            .ok_or_else(|| anyhow!("No socket address resolved from '{addr}'"))
     }
 
     pub async fn econ_connect(&self, args: Option<&Value>) -> anyhow::Result<Econ> {
@@ -91,33 +91,39 @@ impl EconConfig {
         let mut connection_error: Option<anyhow::Error> = None;
 
         for attempt in 1..=max_attempts {
-            match econ.connect(self.get_econ_addr(args)).await {
-                Ok(_) => {
+            let addr = match self.get_econ_addr(args) {
+                Ok(a) => a,
+                Err(e) => {
+                    connection_error = Some(anyhow!("econ.get_econ_addr, err: {e}"));
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    continue;
+                }
+            };
+            match econ.connect(addr).await {
+                Ok(()) => {
                     econ.set_auth_message(self.auth_message.clone());
 
                     match econ.try_auth(&self.password).await {
                         Ok(true) => return Ok(econ),
                         Ok(false) => return Err(anyhow!("Econ client is not authorized")),
                         Err(err) => {
-                            connection_error = Some(anyhow!("econ.try_auth, err: {}", err));
+                            connection_error = Some(anyhow!("econ.try_auth, err: {err}"));
                         }
                     }
                 }
                 Err(err) => {
                     connection_error = Some(anyhow!(
-                        "Attempt {}: econ.connect failed, err: {}",
-                        attempt,
-                        err
+                        "Attempt {attempt}: econ.connect failed, err: {err}",
                     ));
                 }
-            };
+            }
             if attempt < max_attempts {
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
         }
 
         Err(connection_error
-            .unwrap_or_else(|| anyhow!("Failed to connect after {} attempts", max_attempts)))
+            .unwrap_or_else(|| anyhow!("Failed to connect after {max_attempts} attempts")))
     }
 }
 

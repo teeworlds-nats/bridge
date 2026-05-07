@@ -26,14 +26,13 @@ pub async fn message_handler<'a>(
             "Message received from {}, length {}",
             message.subject, message.length
         );
-        let msg = match convert::<MsgHandler>(&message.payload) {
-            Some(msg) => msg,
-            None => continue,
+        let Some(msg) = convert::<MsgHandler>(&message.payload) else {
+            continue;
         };
 
         let new_args = Args::merge_yaml_values(&msg.args, &args);
         let message_text = Args::get(&new_args, "message_text", "{{0}}: {{1}}".to_string());
-        let message_regex = Args::get(&new_args, "message_regex", "".to_string());
+        let message_regex = Args::get(&new_args, "message_regex", String::new());
 
         let text = {
             if message_regex.is_empty() {
@@ -50,43 +49,40 @@ pub async fn message_handler<'a>(
                             }
                         };
                         regex_cache = Some((message_regex.clone(), compiled));
-                        &regex_cache.as_ref().unwrap().1
+                        &regex_cache.as_ref().unwrap_or_else(|| unreachable!()).1
                     }
                 };
 
                 let default_text = formatting::get_and_format(&message_text, &new_args, &msg.value);
                 trace!("Applying regex \"{message_regex}\" to \"{default_text}\"");
 
-                match regex.captures(&default_text) {
-                    Some(caps) => {
-                        let full_match = caps.get(0).map(|m| m.as_str()).unwrap_or("");
+                if let Some(caps) = regex.captures(&default_text) {
+                    let full_match = caps.get(0).map_or("", |m| m.as_str());
 
-                        let other_groups: String = caps
-                            .iter()
-                            .skip(1)
-                            .flatten()
-                            .map(|m| m.as_str())
-                            .collect::<Vec<&str>>()
-                            .join(" ");
+                    let other_groups: String = caps
+                        .iter()
+                        .skip(1)
+                        .flatten()
+                        .map(|m| m.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(" ");
 
-                        if full_match.is_empty() {
-                            warn!(
-                            "Empty full match for regex '{message_regex}' in {default_text} (captured groups: {other_groups})",
+                    if full_match.is_empty() {
+                        warn!(
+                            "Empty full match for regex '{message_regex}' in {default_text} (captured groups: {other_groups})"
                         );
-                            default_text
-                        } else {
-                            CowStr::Owned(other_groups)
-                        }
-                    }
-                    None => {
-                        warn!("No matches found for regex '{message_regex}' in {default_text}",);
                         default_text
+                    } else {
+                        CowStr::Owned(other_groups)
                     }
+                } else {
+                    warn!("No matches found for regex '{message_regex}' in {default_text}");
+                    default_text
                 }
             }
         };
 
-        let not_starts_with = Args::get(&new_args, "not_starts_with", "".to_string());
+        let not_starts_with = Args::get(&new_args, "not_starts_with", String::new());
         if !not_starts_with.is_empty() && text.starts_with(&not_starts_with) {
             continue;
         }

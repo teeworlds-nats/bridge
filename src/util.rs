@@ -62,7 +62,7 @@ mod tests {
     fn test_escape_single_quotes() {
         let input = CowStr::Owned("text with 'quotes'".to_string());
         let result = escape_string(input);
-        assert_eq!(result, CowStr::Owned(r#"text with \'quotes\'"#.into()));
+        assert_eq!(result, CowStr::Owned(r"text with \'quotes\'".into()));
     }
 
     #[test]
@@ -74,9 +74,9 @@ mod tests {
 
     #[test]
     fn test_empty_string() {
-        let input = CowStr::Owned("".to_string());
+        let input = CowStr::Owned(String::new());
         let result = escape_string(input);
-        assert_eq!(result, CowStr::Owned("".to_string()));
+        assert_eq!(result, CowStr::Owned(String::new()));
     }
 
     #[test]

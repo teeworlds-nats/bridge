@@ -26,21 +26,21 @@ fn msg_format<'a>(
         return Some(formats(
             format,
             args,
-            sticker.clone().emoji.unwrap_or_default(),
-            fr.sticker,
+            &sticker.clone().emoji.unwrap_or_default(),
+            &fr.sticker,
         ));
     }
 
     if let Some(media) = msg.media_group_id() {
-        return Some(formats(format, args, media.to_string(), fr.media));
+        return Some(formats(format, args, &media.to_string(), &fr.media));
     }
 
     if let Some(text) = msg.text() {
         return Some(formats(
             format,
             args,
-            normalize_truncate_in_place(&mut text.to_string(), 500),
-            String::new(),
+            &normalize_truncate_in_place(&mut text.to_string(), 500),
+            "",
         ));
     }
 
@@ -70,21 +70,19 @@ async fn handle_message(msg: Message, cfg: ConfigParameters) -> Result<(), Reque
 
     let mut texts = Vec::new();
     if let Some(reply) = msg.reply_to_message() {
-        let result = msg_format(reply, &args, cfg.formats.clone(), true);
-        if let Some(result) = result {
-            texts.push(cfg.emojis.replace_symbols_with_names(result));
+        if let Some(result) = msg_format(reply, &args, cfg.formats.clone(), true) {
+            texts.push(cfg.emojis.replace_symbols_with_names(&result));
         }
     }
     if let Some(result) = msg_format(&msg, &args, cfg.formats, false) {
-        texts.push(cfg.emojis.replace_symbols_with_names(result));
+        texts.push(cfg.emojis.replace_symbols_with_names(&result));
     }
 
     let data = MsgHandler::get_json(
-        texts.iter().map(|x| x.to_string()).collect(),
+        texts.iter().map(ToString::to_string).collect(),
         String::new(),
         &args,
-    )
-    .await;
+    );
     debug!("send {data} to {write_paths:?}:");
     let payload = Bytes::from(data);
     for path in write_paths {
@@ -126,7 +124,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let send_paths = config.nats.to.unwrap_or(vec![CowStr::Borrowed(
         "tw.econ.write.{{message_thread_id}}",
     )]);
-    let emojis = EmojiCollection::new().await?;
+    let emojis = EmojiCollection::new();
 
     let parameters = ConfigParameters {
         emojis,

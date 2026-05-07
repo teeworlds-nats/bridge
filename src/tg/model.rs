@@ -2,7 +2,7 @@ use crate::model::{BaseConfig, CowStr};
 use crate::nats::NatsConfig;
 use log::info;
 use nestify::nest;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_yaml::Value;
 use teloxide::prelude::Requester;
 use teloxide::Bot as TBot;
@@ -61,7 +61,9 @@ impl<'a> BaseConfig for ConfigBots<'a> {
 impl BotConfig {
     pub async fn get_bot(token: &str) -> TBot {
         let bot = TBot::new(token);
-        let me = bot.get_me().await.expect("Failed to execute bot.get_me");
+        let me = bot.get_me().await.unwrap_or_else(|e| {
+            panic!("Failed to execute bot.get_me: {e}");
+        });
 
         info!("bot {} has started", me.username());
 

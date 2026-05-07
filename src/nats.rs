@@ -6,7 +6,7 @@ use async_nats::subject::ToSubject;
 use async_nats::{Client, Subscriber};
 use bytes::Bytes;
 use log::error;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum NatsAuth {
@@ -57,9 +57,9 @@ impl Nats {
         }
     }
 
-    pub async fn publish_bytes<'a>(
+    pub async fn publish_bytes(
         &self,
-        patch: CowStr<'a>,
+        patch: CowStr<'_>,
         payload: Bytes,
     ) -> anyhow::Result<PublishAck> {
         let publish_future = self

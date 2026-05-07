@@ -6,10 +6,14 @@ use crate::econ::handlers::{msg_reader, process_messages};
 use crate::econ::model::ConfigEcon;
 use crate::format_values;
 use crate::model::{BaseConfig, CowStr};
+use crate::nats::Nats;
+use async_tw_econ::Econ;
 use log::{debug, error, info, warn};
+use serde_yaml::Value;
 use std::collections::HashSet;
 use std::time::Duration;
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 
 pub async fn main(config_path: String) -> anyhow::Result<()> {
     let config = ConfigEcon::load_yaml(&config_path).await?;
@@ -18,10 +22,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(64);
     let nats = config.connect_nats().await?;
 
-    let mut econ_write = config
-        .econ_connect()
-        .await
-        .expect("econ_write failed connect");
+    let mut econ_write = config.econ_connect().await?;
     info!("econ connected");
 
     let args = config.args.clone().unwrap_or_default();
@@ -58,11 +59,8 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         single
     );
 
-    let mut reader = tokio::spawn(msg_reader(
-        config
-            .econ_connect()
-            .await
-            .expect("econ_reader failed connect"),
+    let reader = tokio::spawn(msg_reader(
+        config.econ_connect().await?,
         nats.clone(),
         write_path.clone(),
         args.clone(),
@@ -78,9 +76,9 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
     let mut tasks = config.econ.clone().tasks;
     tasks.reverse();
 
-    for _task in tasks {
+    for t in tasks {
         let task_tx = tx.clone();
-        let mut task = _task.clone();
+        let mut task = t;
         task.init_state();
 
         tokio::spawn(async move {
@@ -88,6 +86,18 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         });
     }
 
+    run_message_loop(econ_write, reader, &config, nats, write_path, args, &mut rx).await
+}
+
+async fn run_message_loop(
+    mut econ_write: Econ,
+    mut reader: JoinHandle<anyhow::Result<()>>,
+    config: &ConfigEcon<'_>,
+    nats: Nats,
+    write_path: Vec<CowStr<'static>>,
+    args: Value,
+    rx: &mut mpsc::Receiver<String>,
+) -> anyhow::Result<()> {
     let mut pending_messages = Vec::new();
     let mut reconnect_attempt = 0;
 
@@ -95,7 +105,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
         .econ
         .tasks
         .iter()
-        .flat_map(|task| task.get_all_commands())
+        .flat_map(enums::Task::get_all_commands)
         .collect();
 
     while let Some(message) = rx.recv().await {
@@ -107,7 +117,7 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
 
         while !pending_messages.is_empty() {
             match econ_write.send_line(&pending_messages[0]).await {
-                Ok(_) => {
+                Ok(()) => {
                     pending_messages.remove(0);
                     reconnect_attempt = 0;
                 }
@@ -134,15 +144,19 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                     match config.econ.econ_connect(Some(&args)).await {
                         Ok(result) => {
                             reconnect_attempt = 0;
-                            reader = tokio::spawn(msg_reader(
-                                config
-                                    .econ_connect()
-                                    .await
-                                    .expect("econ_reader failed connect"),
-                                nats.clone(),
-                                write_path.clone(),
-                                args.clone(),
-                            ));
+                            match config.econ_connect().await {
+                                Ok(econ) => {
+                                    reader = tokio::spawn(msg_reader(
+                                        econ,
+                                        nats.clone(),
+                                        write_path.clone(),
+                                        args.clone(),
+                                    ));
+                                }
+                                Err(e) => {
+                                    error!("econ_reader reconnect failed: {e}");
+                                }
+                            }
                             econ_write = result;
                             info!("Reconnected successfully");
                             continue;

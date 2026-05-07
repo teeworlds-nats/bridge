@@ -51,17 +51,17 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
 
     while let Some((text, chat_id, thread_id)) = rx.recv().await {
         if chat_id == -1 {
-            warn!("Skipping message send attempt - invalid chat_id (-1), text: '{text}'",);
+            warn!("Skipping message send attempt - invalid chat_id (-1), text: '{text}'");
             continue;
         }
 
         if let Some(bot) = bot_cycle.next() {
             let msg = {
                 let builder = bot.send_message(ChatId(chat_id), text.to_string());
-                if thread_id != -1 {
-                    builder.message_thread_id(ThreadId(MessageId(thread_id)))
-                } else {
+                if thread_id == -1 {
                     builder
+                } else {
+                    builder.message_thread_id(ThreadId(MessageId(thread_id)))
                 }
             };
 
@@ -78,10 +78,10 @@ pub async fn main(config_path: String) -> anyhow::Result<()> {
                         error!(
                             "Failed to send message to chat {} (thread: {}): {:?}",
                             chat_id,
-                            if thread_id != -1 {
-                                thread_id.to_string()
-                            } else {
+                            if thread_id == -1 {
                                 "none".into()
+                            } else {
+                                thread_id.to_string()
                             },
                             err
                         );
